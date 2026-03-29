@@ -13,18 +13,18 @@ services:
       - php
     networks:
       - pg-network
-  
-  db:
-    build:
-      context: .
-      dockerfile: docker/db/Dockerfile
-    ports:
-      - "5433:5432"
-    networks:
-      - pg-network
-    volumes:
-      - ./docker/db/init:/docker-entrypoint-initdb.d
-  
+#  I will connect to my own database
+#  db:
+#    build:
+#      context: .
+#      dockerfile: docker/db/Dockerfile
+#    ports:
+#      - "5433:5432"
+#    networks:
+#      - pg-network
+#    volumes:
+#      - ./docker/db/init:/docker-entrypoint-initdb.d
+#
   php:
     build:
       context: .
@@ -33,17 +33,17 @@ services:
       - .:/app
     networks:
       - pg-network
-  
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pg-admin2
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    networks:
-      - pg-network
+# Instead of this I will use Data Grip
+#  pgadmin:
+#    image: dpage/pgadmin4:latest
+#    container_name: pg-admin2
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: admin@example.com
+#      PGADMIN_DEFAULT_PASSWORD: admin
+#    ports:
+#      - "5050:80"
+#    networks:
+#      - pg-network
   
 networks:
   pg-network:
