@@ -1,7 +1,12 @@
 <?php
 
-require_once 'src/controllers/SecurityController.php';
-require_once 'src/controllers/DashboardController.php';
+require_once __DIR__ . '/src/helpers/Session.php';
+require_once __DIR__ . '/src/helpers/Csrf.php';
+require_once __DIR__ . '/src/helpers/RateLimit.php';
+require_once __DIR__ . '/src/helpers/Validation.php';
+
+require_once __DIR__ . '/src/controllers/SecurityController.php';
+require_once __DIR__ . '/src/controllers/DashboardController.php';
 
 class Routing {
 
@@ -11,6 +16,14 @@ class Routing {
         "login" => [
             "controller" => "SecurityController",
             "action" => "login"
+        ],
+        "register" => [
+            "controller" => "SecurityController",
+            "action" => "register"
+        ],
+        "logout" => [
+            "controller" => "SecurityController",
+            "action" => "logout"
         ],
         "dashboard" => [
             "controller" => "DashboardController",

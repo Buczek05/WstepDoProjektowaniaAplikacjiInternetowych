@@ -1,4 +1,4 @@
-FROM php:8.3.18RC1-fpm-alpine3.21
+FROM php:8.3-fpm-alpine
 
 ENV RUN_DEPS \
     zlib \
@@ -30,6 +30,9 @@ RUN apk add --no-cache --virtual .build-deps $BUILD_DEPS \
 RUN apk add --no-cache --virtual .run-deps $RUN_DEPS
 
 RUN echo 'memory_limit = -1' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
+
+# Hardened PHP defaults (E4): display_errors off, secure session cookies, etc.
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-custom.ini
 
 # Copy the application code
 COPY . /app
