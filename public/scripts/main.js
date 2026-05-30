@@ -1,10 +1,10 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.querySelector('.navbar-toggle');
-    const links = document.querySelector('.navbar-links');
+const menuIcon = document.querySelector(".display-mobile.fa-bars");
+const navList = document.querySelector("nav > div.container > ul");
 
-    if (toggle && links) {
-        toggle.addEventListener('click', () => {
-            links.classList.toggle('open');
-        });
-    }
+menuIcon.addEventListener("click", () => {
+  if (navList.style.display === "block") {
+    navList.style.display = "none";
+  } else {
+    navList.style.display = "block";
+  }
 });

@@ -1,5 +1,7 @@
-.env
-.idea/
+.vscode
+.vs
+.idea
+config.php
 docs/
 CLAUDE.md
 .claude/

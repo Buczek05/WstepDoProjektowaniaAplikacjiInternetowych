@@ -1,65 +1,66 @@
 <?php
 
-require_once __DIR__ . '/src/helpers/Session.php';
-require_once __DIR__ . '/src/helpers/Csrf.php';
-require_once __DIR__ . '/src/helpers/RateLimit.php';
-require_once __DIR__ . '/src/helpers/Validation.php';
-
-require_once __DIR__ . '/src/controllers/SecurityController.php';
-require_once __DIR__ . '/src/controllers/DashboardController.php';
+require_once 'src/controllers/SecurityController.php';
+require_once 'src/controllers/DashboardController.php';
+require_once 'src/Middleware/checkRequestAllowed.php';
 
 class Routing {
+    private static array $instances = [];
 
-    private static $instances = [];
-
-    public static $routes = [
-        "login" => [
-            "controller" => "SecurityController",
-            "action" => "login"
+    public static array $routes = [
+        '' => [
+            'controller' => 'SecurityController',
+            'action'     => 'login',
         ],
-        "register" => [
-            "controller" => "SecurityController",
-            "action" => "register"
+        'login' => [
+            'controller' => 'SecurityController',
+            'action'     => 'login',
         ],
-        "logout" => [
-            "controller" => "SecurityController",
-            "action" => "logout"
+        'register' => [
+            'controller' => 'SecurityController',
+            'action'     => 'register',
         ],
-        "dashboard" => [
-            "controller" => "DashboardController",
-            "action" => "index"
+        'logout' => [
+            'controller' => 'SecurityController',
+            'action'     => 'logout',
         ],
-        "" => [
-            "controller" => "SecurityController",
-            "action" => "login"
+        'dashboard' => [
+            'controller' => 'DashboardController',
+            'action'     => 'index',
         ],
     ];
 
-    private static function getController(string $controllerClass) {
+    private static function getController(string $controllerClass): object
+    {
         if (!isset(self::$instances[$controllerClass])) {
-            self::$instances[$controllerClass] = new $controllerClass;
+            self::$instances[$controllerClass] = new $controllerClass();
         }
         return self::$instances[$controllerClass];
     }
 
-    public static function run(string $path) {
+    public static function run(string $path): void
+    {
         $id = null;
 
-        // regex: wyciągnij bazową ścieżkę i opcjonalny ID np. /dashboard/12234
+        // Extract optional numeric ID, e.g. /dashboard/123
         if (preg_match('#^([a-zA-Z]+)/(\d+)$#', $path, $matches)) {
             $path = $matches[1];
-            $id = $matches[2];
+            $id   = $matches[2];
         }
 
-        if (array_key_exists($path, self::$routes)) {
-            $controller = self::$routes[$path]["controller"];
-            $action = self::$routes[$path]["action"];
-
-            $controllerObj = self::getController($controller);
-            $controllerObj->$action($id);
-        } else {
+        if (!array_key_exists($path, self::$routes)) {
             http_response_code(404);
             include 'public/views/404.html';
+            return;
         }
+
+        $controllerClass = self::$routes[$path]['controller'];
+        $action          = self::$routes[$path]['action'];
+
+        $controller = self::getController($controllerClass);
+
+        checkRequestAllowed($controller, $action);
+
+        $controller->$action($id);
     }
 }

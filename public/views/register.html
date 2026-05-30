@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <?php include __DIR__ . '/partials/head.html'; ?>
+    <link rel="stylesheet" type="text/css" href="public/styles/register.css" />
+    <title>Register</title>
+  </head>
+  <body class="auth-page register-page">
+    <main class="auth-shell">
+      <form class="auth-form register-form" method="POST" action="/register">
+        <div class="auth-heading">
+          <span class="eyebrow">Create account</span>
+          <h1>Register</h1>
+        </div>
+
+        <?php if (isset($messages)): ?>
+        <p class="messages">
+          <?= htmlspecialchars($messages, ENT_QUOTES, 'UTF-8') ?>
+        </p>
+        <?php endif; ?>
+
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>" />
+
+        <label>
+          Email
+          <input name="email" type="email" placeholder="Twój email" />
+        </label>
+        <label>
+          Password
+          <input name="password" type="password" placeholder="Twoje hasło" />
+        </label>
+        <label>
+          Repeat password
+          <input name="password2" type="password" placeholder="Powtórz hasło" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            First name
+            <input name="firstName" type="text" placeholder="Imie" />
+          </label>
+          <label>
+            Last name
+            <input name="lastName" type="text" placeholder="Nazwisko" />
+          </label>
+        </div>
+        <button type="submit">Register</button>
+      </form>
+    </main>
+  </body>
+</html>

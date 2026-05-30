@@ -1,182 +1,207 @@
 <?php
 
-require_once __DIR__ . '/AppController.php';
+require_once 'AppController.php';
 require_once __DIR__ . '/../repositories/UsersRepository.php';
-require_once __DIR__ . '/../helpers/Session.php';
-require_once __DIR__ . '/../helpers/Csrf.php';
-require_once __DIR__ . '/../helpers/RateLimit.php';
-require_once __DIR__ . '/../helpers/Validation.php';
+require_once __DIR__ . '/../Attribute/AllowedMethods.php';
 
-class SecurityController extends AppController
-{
+class SecurityController extends AppController {
+
+    #[AllowedMethods(['GET', 'POST'])]
     public function login()
     {
         if (!$this->isPost()) {
-            return $this->render('login', ['csrf' => Csrf::field()]);
-        }
-
-        // CSRF check (A1)
-        $csrfToken = $_POST['csrf_token'] ?? null;
-        if (!Session::validateCsrf(is_string($csrfToken) ? $csrfToken : null)) {
-            http_response_code(403);
+            $flash = $_SESSION['flash'] ?? null;
+            unset($_SESSION['flash']);
             return $this->render('login', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Niepoprawny token CSRF'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'flash'      => $flash,
             ]);
         }
 
-        $email = trim((string)($_POST['email'] ?? ''));
-        $password = (string)($_POST['password'] ?? '');
+        // CSRF check (B2)
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrfToken)) {
+            http_response_code(403);
+            return $this->render('login', [
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Invalid CSRF token',
+            ]);
+        }
 
-        // D2: Length caps to prevent resource abuse (e.g. bcrypt long-input DoS, oversized inputs).
+        $email    = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        // Input length caps (D2)
         if (strlen($email) > 100 || strlen($password) > 200) {
             http_response_code(400);
             return $this->render('login', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Zbyt długie dane wejściowe'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Input too long',
             ]);
         }
 
-        // C1: Email format. Use generic message to avoid user enumeration.
-        if (!Validation::email($email)) {
+        if (empty($email) || empty($password)) {
             http_response_code(400);
             return $this->render('login', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Niepoprawny email lub hasło'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Fill all fields',
             ]);
         }
 
-        // A4 + E5: Rate-limit per email + IP.
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $rateKey = 'login:' . $email . ':' . $ip;
+        // Email format validation (C1) — generic message to avoid enumeration (B1)
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            return $this->render('login', [
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Invalid email or password',
+            ]);
+        }
 
-        if (RateLimit::tooMany($rateKey)) {
+        // Rate limiting (A4) — session-based sliding window
+        $attempts    = (int)($_SESSION['login_attempts'] ?? 0);
+        $lastAttempt = (int)($_SESSION['login_last_attempt'] ?? 0);
+        if (time() - $lastAttempt > 900) {
+            $attempts = 0;
+        }
+        if ($attempts >= 5) {
             http_response_code(429);
-            error_log("Login rate-limited for {$email} from {$ip}");
             sleep(2);
             return $this->render('login', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Za dużo prób. Spróbuj ponownie później.'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Too many login attempts. Try again later.',
             ]);
         }
 
         $userRepository = UsersRepository::getInstance();
-        $user = $userRepository->getUserByEmail($email);
+        $user           = $userRepository->getUserByEmail($email);
 
         $passwordOk = false;
-        if ($user && isset($user['password']) && is_string($user['password'])) {
+        if ($user && isset($user['password'])) {
             $passwordOk = password_verify($password, $user['password']);
         }
 
         if (!$user || !$passwordOk) {
-            RateLimit::record($rateKey);
-            // Never log password.
-            error_log("Failed login for {$email} from {$ip}");
+            $_SESSION['login_attempts']     = $attempts + 1;
+            $_SESSION['login_last_attempt'] = time();
+            // E5: log without password; B1: generic message
+            error_log('Failed login for ' . $email . ' from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
             http_response_code(401);
             return $this->render('login', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Niepoprawny email lub hasło'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Invalid email or password',
             ]);
         }
 
-        // Success.
-        RateLimit::clear($rateKey);
-        Session::login((int)$user['id'], (string)$user['email'], (string)$user['username']);
+        // Clear rate-limit on success
+        unset($_SESSION['login_attempts'], $_SESSION['login_last_attempt']);
+
+        // Create session (B3: regenerate ID to prevent session fixation)
+        session_regenerate_id(true);
+        $_SESSION['user_id']        = $user['id'];
+        $_SESSION['user_email']     = $user['email'];
+        $_SESSION['user_firstname'] = $user['username'] ?? null;
+        $_SESSION['is_logged_in']   = true;
+
         $this->redirect('/dashboard');
     }
 
+    #[AllowedMethods(['GET', 'POST'])]
     public function register()
     {
         if (!$this->isPost()) {
-            return $this->render('register', ['csrf' => Csrf::field()]);
+            return $this->render('register', ['csrf_token' => $_SESSION['csrf_token']]);
         }
 
-        // CSRF check (A1)
-        $csrfToken = $_POST['csrf_token'] ?? null;
-        if (!Session::validateCsrf(is_string($csrfToken) ? $csrfToken : null)) {
+        // CSRF check (C2)
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrfToken)) {
             http_response_code(403);
             return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Niepoprawny token CSRF'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Invalid CSRF token',
             ]);
         }
 
-        $email = trim((string)($_POST['email'] ?? ''));
-        $password = (string)($_POST['password'] ?? '');
-        $password2 = (string)($_POST['password2'] ?? '');
-        $username = trim((string)($_POST['username'] ?? ''));
+        $email     = trim($_POST['email'] ?? '');
+        $password  = $_POST['password'] ?? '';
+        $password2 = $_POST['password2'] ?? '';
+        $firstName = trim($_POST['firstName'] ?? '');
+        $lastName  = trim($_POST['lastName'] ?? '');
 
-        // D2: Length caps.
-        if (strlen($email) > 100 || strlen($password) > 200 || strlen($username) > 100) {
+        // Input length caps (D2)
+        if (strlen($email) > 100 || strlen($password) > 200 || strlen($firstName) > 50 || strlen($lastName) > 50) {
             http_response_code(400);
             return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Zbyt długie dane wejściowe'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Input too long',
             ]);
         }
 
-        if ($email === '' || $password === '' || $password2 === '' || $username === '') {
+        if (empty($email) || empty($password) || empty($password2) || empty($firstName) || empty($lastName)) {
             http_response_code(400);
             return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Uzupełnij wszystkie pola'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Fill all fields',
             ]);
         }
 
-        if (!Validation::email($email)) {
+        // Email format (C1)
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             http_response_code(400);
             return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Niepoprawny format email'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Invalid email format',
             ]);
         }
 
-        $usernameError = Validation::username($username);
-        if ($usernameError !== null) {
+        // Password complexity (B4)
+        if (strlen($password) < 8) {
             http_response_code(400);
             return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => [$usernameError],
-            ]);
-        }
-
-        $passwordError = Validation::password($password);
-        if ($passwordError !== null) {
-            http_response_code(400);
-            return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => [$passwordError],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Password must be at least 8 characters',
             ]);
         }
 
         if ($password !== $password2) {
             http_response_code(400);
             return $this->render('register', [
-                'csrf' => Csrf::field(),
-                'messages' => ['Hasła nie są zgodne'],
+                'csrf_token' => $_SESSION['csrf_token'],
+                'messages'   => 'Passwords are not the same',
             ]);
         }
 
-        $repo = UsersRepository::getInstance();
+        $userRepository = UsersRepository::getInstance();
 
-        // C4: Avoid user enumeration — same flash, same redirect, regardless of whether email exists.
-        $flash = 'Jeśli email jest dostępny, konto zostało utworzone. Możesz się zalogować.';
-
-        $existing = $repo->getUserByEmail($email);
+        // C4: don't reveal whether email is already taken
+        $flash    = 'If the email is available, your account has been created. You can now log in.';
+        $existing = $userRepository->getUserByEmail($email);
         if (!$existing) {
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-            $repo->createUser($email, $hashedPassword, $username);
+            $userRepository->createUser($firstName, $email, $hashedPassword, $firstName . ' ' . $lastName);
         }
 
-        Session::start();
         $_SESSION['flash'] = $flash;
-
         $this->redirect('/login');
     }
 
-    public function logout()
+    #[AllowedMethods(['GET', 'POST'])]
+    public function logout(): void
     {
-        Session::logout();
-        $this->redirect('/login');
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params['path'], $params['domain'],
+                $params['secure'], $params['httponly']
+            );
+        }
+        session_destroy();
+        $url = "http://{$_SERVER['HTTP_HOST']}";
+        header("Location: {$url}/login");
+        exit();
     }
 }

@@ -1,54 +1,61 @@
 <?php
 
-require_once __DIR__ . '/../helpers/Session.php';
-
-class AppController
-{
-    private string $request;
-
-    public function __construct()
-    {
-        // Defense-in-depth: enforce HTTPS at the application layer when explicitly enabled.
-        // nginx still handles the actual redirect in production.
-        $forceHttps = getenv('FORCE_HTTPS');
-        if ($forceHttps === 'true' && empty($_SERVER['HTTPS'])) {
-            http_response_code(426);
-            echo 'HTTPS required';
-            exit;
+class AppController {
+    public function __construct() {
+        if (session_status() === PHP_SESSION_NONE) {
+            // Harden session cookie: HttpOnly (C3), Secure over HTTPS (D3), SameSite=Strict (E3)
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path'     => '/',
+                'secure'   => !empty($_SERVER['HTTPS']),
+                'httponly' => true,
+                'samesite' => 'Strict',
+            ]);
+            session_start();
         }
-
-        Session::start();
-
-        $this->request = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
     }
 
     protected function isGet(): bool
     {
-        return $this->request === 'GET';
+        return $_SERVER['REQUEST_METHOD'] === 'GET';
     }
 
     protected function isPost(): bool
     {
-        return $this->request === 'POST';
+        return $_SERVER['REQUEST_METHOD'] === 'POST';
+    }
+
+    protected function requireLogin(): void
+    {
+        if (empty($_SESSION['user_id'])) {
+            $this->redirect('/login');
+        }
     }
 
     protected function redirect(string $path): void
     {
-        header('Location: ' . $path);
-        exit;
+        $url = "http://{$_SERVER['HTTP_HOST']}";
+        header("Location: {$url}{$path}");
+        exit();
     }
 
-    protected function render(string $template, array $variables = []): void
+    protected function render(string $template = null, array $variables = [])
     {
-        $templatePath = 'public/views/' . $template . '.php';
+        $templatePath    = 'public/views/' . $template . '.html';
+        $templatePath404 = 'public/views/404.html';
 
-        if (!file_exists($templatePath)) {
-            http_response_code(404);
-            include 'public/views/404.html';
-            return;
+        if (file_exists($templatePath)) {
+            extract($variables);
+            ob_start();
+            include $templatePath;
+            echo ob_get_clean();
+        } else {
+            ob_start();
+            include $templatePath404;
+            echo ob_get_clean();
         }
-
-        extract($variables);
-        require $templatePath;
     }
 }

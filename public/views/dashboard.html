@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <?php include __DIR__ . '/partials/head.html'; ?>
+    <link rel="stylesheet" type="text/css" href="public/styles/dashboard.css" />
+    <title>Dashboard</title>
+  </head>
+  <body class="dashboard-page">
+    <?php include __DIR__ . '/partials/nav.html'; ?>
+    <main class="dashboard-shell container">
+      <section class="dashboard-hero">
+        <span class="eyebrow">Workspace</span>
+        <h1>Dashboard</h1>
+        <p>Manage your profile and projects from one clean view.</p>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="dashboard-card">
+          <span class="card-icon"><i class="fa-solid fa-user"></i></span>
+          <h2>Profile</h2>
+          <p>Your account is ready. Add more profile details when the next feature lands.</p>
+        </article>
+
+        <article class="dashboard-card">
+          <span class="card-icon"><i class="fa-solid fa-diagram-project"></i></span>
+          <h2>Projects</h2>
+          <p>Project tools can live here, with quick access from the navigation.</p>
+        </article>
+
+        <article class="dashboard-card">
+          <span class="card-icon"><i class="fa-solid fa-shield-halved"></i></span>
+          <h2>Security</h2>
+          <p>Passwords are stored using hashing, and login checks verify credentials.</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

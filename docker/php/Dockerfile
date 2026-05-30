@@ -1,28 +1,29 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm-alpine3.21
 
-ENV RUN_DEPS \
+ENV RUN_DEPS="\
     zlib \
     libzip \
     libpng \
     libjpeg-turbo \
-    postgresql-libs
+    postgresql-libs"
 
-ENV BUILD_DEPS \
+ENV BUILD_DEPS="\
     zlib-dev \
     libzip-dev \
     libpng-dev \
     libjpeg-turbo-dev \
-    postgresql-dev
+    postgresql-dev"
 
-ENV PHP_EXTENSIONS \
+ENV PHP_EXTENSIONS="\
     opcache \
     zip \
     gd \
     bcmath \
     pgsql \
-    pdo_pgsql
+    pdo_pgsql"
 
-RUN apk add --no-cache --virtual .build-deps $BUILD_DEPS \
+RUN apk upgrade --no-cache --available \
+    && apk add --no-cache --virtual .build-deps $BUILD_DEPS \
     && docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install -j "$(nproc)" $PHP_EXTENSIONS \
     && apk del .build-deps
@@ -30,9 +31,6 @@ RUN apk add --no-cache --virtual .build-deps $BUILD_DEPS \
 RUN apk add --no-cache --virtual .run-deps $RUN_DEPS
 
 RUN echo 'memory_limit = -1' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
-
-# Hardened PHP defaults (E4): display_errors off, secure session cookies, etc.
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-custom.ini
 
 # Copy the application code
 COPY . /app

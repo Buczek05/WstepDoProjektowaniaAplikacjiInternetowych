@@ -1,0 +1,26 @@
+.register-page {
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.12), transparent 36%),
+    linear-gradient(315deg, rgba(37, 99, 235, 0.1), transparent 34%),
+    var(--color-bg);
+}
+
+.register-page .auth-shell {
+  width: min(100%, 560px);
+}
+
+.register-form {
+  border-top: 4px solid #14b8a6;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media screen and (max-width: 560px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

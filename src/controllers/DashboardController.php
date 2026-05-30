@@ -1,29 +1,22 @@
 <?php
 
-require_once __DIR__ . '/AppController.php';
+require_once 'AppController.php';
 require_once __DIR__ . '/../repositories/UsersRepository.php';
-require_once __DIR__ . '/../helpers/Session.php';
+require_once __DIR__ . '/../Attribute/AllowedMethods.php';
 
-class DashboardController extends AppController
-{
-    public function index($id = null)
+class DashboardController extends AppController {
+
+    #[AllowedMethods(['GET'])]
+    public function index()
     {
-        if (!Session::isLoggedIn()) {
-            $this->redirect('/login');
-            return;
-        }
+        $this->requireLogin();
 
-        $userRepository = UsersRepository::getInstance();
-        $users = $userRepository->getAllUsers();
+        $usersRepository = UsersRepository::getInstance();
+        $users = $usersRepository->getUsers();
 
-        $flash = $_SESSION['flash'] ?? null;
-        unset($_SESSION['flash']);
-
-        $this->render('dashboard', [
-            'title' => 'WDPAI - Dashboard',
+        return $this->render('index', [
+            'title' => 'Dashboard',
             'users' => $users,
-            'currentUser' => Session::currentUser(),
-            'flash' => $flash,
         ]);
     }
 }

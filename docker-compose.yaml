@@ -1,48 +1,41 @@
 services:
-  nginx:
+  server:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
     ports:
       - "8080:80"
-      - "8443:443"
     volumes:
       - .:/app/
     links:
       - php
     networks:
       - pg-network
-
+  
   db:
+    platform: linux/arm64
     build:
       context: .
       dockerfile: docker/db/Dockerfile
-    env_file:
-      - .env
     ports:
       - "5433:5432"
     networks:
       - pg-network
     volumes:
-      - pg-data:/var/lib/postgresql/data
       - ./docker/db/init:/docker-entrypoint-initdb.d
-
+  
   php:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    env_file:
-      - .env
     volumes:
       - .:/app
-    depends_on:
-      - db
     networks:
       - pg-network
-
-  pgadmin:
+  
+  pgadmin-wdpai:
     image: dpage/pgadmin4:latest
-    container_name: pg-admin2
+    container_name: pg-admin3
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
@@ -50,7 +43,7 @@ services:
       - "5050:80"
     networks:
       - pg-network
-
+  
 networks:
   pg-network:
 
