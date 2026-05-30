@@ -50,6 +50,18 @@ class Routing {
             'controller' => 'SettingsController',
             'action'     => 'index',
         ],
+        'settings/profile' => [
+            'controller' => 'SettingsController',
+            'action'     => 'updateProfile',
+        ],
+        'settings/password' => [
+            'controller' => 'SettingsController',
+            'action'     => 'changePassword',
+        ],
+        'settings/preferences' => [
+            'controller' => 'SettingsController',
+            'action'     => 'updatePreferences',
+        ],
         'switch' => [
             'controller' => 'WorkspaceController',
             'action'     => 'switch',

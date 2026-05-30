@@ -23,7 +23,11 @@ document.addEventListener('DOMContentLoaded', function () {
     count:    function (v) { return Number(v).toLocaleString('en-US'); }
   };
 
-  var accent = '#6d8bff', grid = 'rgba(255,255,255,0.06)', muted = '#8a93a8';
+  var light = document.documentElement.getAttribute('data-theme') === 'light';
+  var accent = light ? '#4f6bff' : '#6d8bff';
+  var grid = light ? 'rgba(20,30,55,0.08)' : 'rgba(255,255,255,0.06)';
+  var muted = light ? '#5e6b86' : '#8a93a8';
+  var fillBg = light ? 'rgba(79,107,255,0.12)' : 'rgba(109,139,255,0.16)';
   var palette = ['#6d8bff', '#3ad6a8', '#f4c152', '#ff6b6b', '#9b6dff', '#58b4ff', '#ff8f6b', '#5ad1c4', '#c0d16d', '#e06ec0'];
 
   document.querySelectorAll('canvas.nx-canvas').forEach(function (cv) {
@@ -71,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
           label: cfg.label,
           data: cfg.values,
           borderColor: accent,
-          backgroundColor: isBar ? accent : 'rgba(109,139,255,0.16)',
+          backgroundColor: isBar ? accent : fillBg,
           borderWidth: 2,
           fill: !isBar,
           tension: 0.35,

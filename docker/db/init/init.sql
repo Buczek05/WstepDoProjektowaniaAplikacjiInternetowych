@@ -52,6 +52,8 @@ CREATE TABLE users (
     full_name       VARCHAR(100),
     role            user_role    NOT NULL DEFAULT 'viewer',
     is_active       BOOLEAN      NOT NULL DEFAULT TRUE,
+    theme           VARCHAR(10)  NOT NULL DEFAULT 'dark',   -- UI preference: 'dark' | 'light'
+    default_period  INTEGER      NOT NULL DEFAULT 30,       -- default reporting window (days)
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );

@@ -98,6 +98,8 @@ class SecurityController extends AppController {
         $_SESSION['user_email']     = $user->getEmail();
         $_SESSION['user_firstname'] = $user->getUsername();
         $_SESSION['is_logged_in']   = true;
+        $_SESSION['theme']          = $user->getTheme();
+        $_SESSION['default_period'] = $user->getDefaultPeriod();
 
         $this->redirect('/dashboard');
     }

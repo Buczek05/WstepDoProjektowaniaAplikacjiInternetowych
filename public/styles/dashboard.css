@@ -17,6 +17,23 @@
 }
 .nx, .nx *, .nx *::before, .nx *::after { box-sizing: border-box; }
 
+/* Light theme — overrides the palette; same layout. Set on <html data-theme>. */
+[data-theme="light"] .nx {
+  --bg: #eef1f7;
+  --panel: #ffffff;
+  --panel-2: #f3f5fa;
+  --border: #d8deea;
+  --text: #1b2436;
+  --muted: #5e6b86;
+  --accent: #4f6bff;
+  --accent-2: #11b886;
+  --danger: #e03131;
+}
+[data-theme="light"] .nx-topbar { background: #ffffff; }
+[data-theme="light"] .nx-card, [data-theme="light"] .nx-panel { box-shadow: 0 6px 18px rgba(20,30,55,.06); }
+[data-theme="light"] .nx-toast--ok  { color: #06281f; }
+[data-theme="light"] .nx-toast--err { color: #fff; }
+
 /* Grid/flex children must be allowed to shrink below their content width,
    otherwise a wide table forces the whole page wider (horizontal scroll). */
 .nx-shell > *, .nx-two-col > *, .nx-kpis > *, .nx-regions > *, .nx-panel { min-width: 0; }

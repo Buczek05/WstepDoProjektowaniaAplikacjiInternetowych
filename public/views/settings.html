@@ -1,61 +1,83 @@
 <?php include __DIR__ . '/partials/nx-helpers.html'; ?>
 <?php
-$memberships = $memberships ?? [];
-$security = [
-    'Passwords hashed with bcrypt',
-    'CSRF tokens on login & registration',
-    'Session ID regenerated after login',
-    'HttpOnly · Secure · SameSite=Strict cookies',
-    'Prepared statements (no SQL injection)',
-    'Login rate limiting & generic error messages',
-    'XSS escaping on every rendered value',
-];
+$profile       = $profile       ?? ['full_name' => '', 'email' => ''];
+$theme         = $theme         ?? 'dark';
+$defaultPeriod = $defaultPeriod ?? 30;
+$periods       = $periods       ?? [7, 30, 90, 365];
+$flash         = $flash         ?? null;
+$csrf          = $_SESSION['csrf_token'] ?? '';
+$E = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+$periodLabel = [7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days', 365 => 'Last 12 months'];
 ?>
 <!doctype html>
 <html lang="en">
   <head>
     <?php include __DIR__ . '/partials/head.html'; ?>
     <link rel="stylesheet" type="text/css" href="public/styles/dashboard.css" />
-    <title><?= htmlspecialchars($title ?? 'Settings', ENT_QUOTES, 'UTF-8') ?></title>
+    <title><?= $E($title ?? 'Account') ?></title>
   </head>
   <body class="nx">
     <?php include __DIR__ . '/partials/nx-header.html'; ?>
 
     <main class="nx-shell">
       <section class="nx-hero">
-        <div><span class="eyebrow">Settings</span><h1>Workspace &amp; Account</h1></div>
-        <p class="nx-hero-date"><?= htmlspecialchars($userEmail ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+        <div>
+          <span class="eyebrow">Account</span>
+          <h1>Account &amp; Preferences</h1>
+          <p class="nx-hero-date"><?= $E($profile['email'] ?? '') ?></p>
+        </div>
       </section>
 
+      <?php if ($flash): ?>
+        <p class="nx-flash nx-flash--<?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>"><?= $E($flash['msg']) ?></p>
+      <?php endif; ?>
+
       <div class="nx-two-col">
+        <!-- Profile -->
         <section class="nx-panel">
-          <div class="nx-panel-head"><h2>Your Workspaces</h2><small><?= count($memberships) ?> total</small></div>
-          <div class="nx-table-wrap">
-          <table class="nx-table">
-            <thead><tr><th>Company</th><th>Plan</th><th>Role</th></tr></thead>
-            <tbody>
-              <?php foreach ($memberships as $m): $isActive = !empty($workspace) && (int)$workspace['id'] === (int)$m['id']; ?>
-              <tr>
-                <td><?= htmlspecialchars($m['name'], ENT_QUOTES, 'UTF-8') ?> <?= $isActive ? '<span class="badge badge--processing">active</span>' : '' ?></td>
-                <td><?= htmlspecialchars($m['plan'], ENT_QUOTES, 'UTF-8') ?></td>
-                <td><span class="badge badge--delivered"><?= htmlspecialchars(ucfirst($m['role']), ENT_QUOTES, 'UTF-8') ?></span></td>
-              </tr>
-              <?php endforeach; ?>
-              <?php if (!$memberships): ?><tr><td colspan="3" class="nx-muted">No workspaces</td></tr><?php endif; ?>
-            </tbody>
-          </table>
-          </div>
+          <div class="nx-panel-head"><h2><i class="fa-solid fa-id-card"></i> Profile</h2></div>
+          <form class="nx-form" method="POST" action="/settings/profile">
+            <input type="hidden" name="csrf_token" value="<?= $E($csrf) ?>" />
+            <label>Full name <input name="full_name" type="text" maxlength="100" value="<?= $E($profile['full_name'] ?? '') ?>" required /></label>
+            <label>Email <input name="email" type="email" maxlength="100" value="<?= $E($profile['email'] ?? '') ?>" required /></label>
+            <button type="submit"><i class="fa-solid fa-floppy-disk"></i> Save profile</button>
+          </form>
         </section>
 
+        <!-- Password -->
         <section class="nx-panel">
-          <div class="nx-panel-head"><h2>Security</h2><small>Active protections</small></div>
-          <ul class="nx-check">
-            <?php foreach ($security as $item): ?>
-            <li><i class="fa-solid fa-circle-check"></i> <?= htmlspecialchars($item, ENT_QUOTES, 'UTF-8') ?></li>
-            <?php endforeach; ?>
-          </ul>
+          <div class="nx-panel-head"><h2><i class="fa-solid fa-key"></i> Change password</h2></div>
+          <form class="nx-form" method="POST" action="/settings/password" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="<?= $E($csrf) ?>" />
+            <label>Current password <input name="current_password" type="password" required /></label>
+            <label>New password <input name="new_password" type="password" minlength="8" maxlength="200" required /></label>
+            <label>Confirm new password <input name="confirm_password" type="password" minlength="8" maxlength="200" required /></label>
+            <button type="submit"><i class="fa-solid fa-key"></i> Update password</button>
+          </form>
         </section>
       </div>
+
+      <!-- Preferences -->
+      <section class="nx-panel">
+        <div class="nx-panel-head"><h2><i class="fa-solid fa-sliders"></i> Preferences</h2><small>Applied across the app</small></div>
+        <form class="nx-form" method="POST" action="/settings/preferences">
+          <input type="hidden" name="csrf_token" value="<?= $E($csrf) ?>" />
+          <label>Theme
+            <select name="theme">
+              <option value="dark"  <?= $theme !== 'light' ? 'selected' : '' ?>>Dark</option>
+              <option value="light" <?= $theme === 'light' ? 'selected' : '' ?>>Light</option>
+            </select>
+          </label>
+          <label>Default reporting period
+            <select name="default_period">
+              <?php foreach ($periods as $p): ?>
+                <option value="<?= (int)$p ?>" <?= (int)$defaultPeriod === (int)$p ? 'selected' : '' ?>><?= $E($periodLabel[$p] ?? ($p . ' days')) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <button type="submit"><i class="fa-solid fa-floppy-disk"></i> Save preferences</button>
+        </form>
+      </section>
     </main>
   </body>
 </html>

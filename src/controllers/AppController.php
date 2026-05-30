@@ -37,12 +37,14 @@ class AppController {
         }
     }
 
-    /** Selected reporting window in days from ?days=, clamped to an allow-list. */
+    /** Selected reporting window in days from ?days=, else the user's saved default. */
     protected function periodDays(): int
     {
         $allowed = [7, 30, 90, 365];
-        $days    = (int)($_GET['days'] ?? 30);
-        return in_array($days, $allowed, true) ? $days : 30;
+        $default = (int)($_SESSION['default_period'] ?? 30);
+        $default = in_array($default, $allowed, true) ? $default : 30;
+        $days    = (int)($_GET['days'] ?? $default);
+        return in_array($days, $allowed, true) ? $days : $default;
     }
 
     /** Start date for a trailing window of $days ending on $to (inclusive). */
