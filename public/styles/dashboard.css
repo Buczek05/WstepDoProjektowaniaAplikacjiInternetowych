@@ -32,7 +32,10 @@
 
 /* Hamburger + off-canvas backdrop (mobile/tablet only) */
 .nx-burger { display: none; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: .5rem .65rem; font-size: 1rem; cursor: pointer; }
-.nx-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 39; }
+/* z-index 8 keeps the backdrop above page content (z 0) but BELOW the sticky
+   topbar (z 10) that contains the drawer — otherwise it would paint over the
+   drawer (making it dark) and swallow its clicks. */
+.nx-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 8; }
 @media (min-width: 981px) { .nx-drawer { display: contents; } }  /* desktop: nav+user inline */
 
 /* Let clusters wrap instead of overflowing in tight zones */
@@ -334,7 +337,9 @@ button.nx-switch-item:hover { background: var(--panel-2); }
   }
   .nx-drawer.is-open { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,.55); }
   .nx-nav { flex-direction: column; align-items: stretch; margin-left: 0; gap: .2rem; }
-  .nx-nav a { padding: .7rem .8rem; }
+  .nx-nav a { padding: .75rem .8rem; color: var(--text); font-size: .95rem; }
+  .nx-nav a i { width: 20px; color: var(--muted); }
+  .nx-nav a.is-active i { color: var(--accent); }
   .nx-user { flex-direction: column; align-items: stretch; margin-left: 0; gap: .6rem; margin-top: .6rem; padding-top: .8rem; border-top: 1px solid var(--border); }
   .nx-user .nx-email { display: block; font-size: .8rem; }
   .nx-switch { width: 100%; }
