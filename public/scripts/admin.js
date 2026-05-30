@@ -85,8 +85,8 @@
       ? '<p class="nx-cap"><i class="fa-solid fa-circle-info"></i> ' + data.plan + ' plan — up to ' + data.max_members + ' members.</p>'
       : '';
     var opts = ROLES.map(function (r) { return '<option value="' + r + '"' + (r === 'viewer' ? ' selected' : '') + '>' + cap0(r) + '</option>'; }).join('');
-    return '<table class="nx-table"><thead><tr><th>Name</th><th>Email</th><th>Platform</th><th>Role</th><th></th></tr></thead>' +
-      '<tbody data-members="' + orgId + '">' + rows + '</tbody></table>' + cap +
+    return '<div class="nx-table-wrap"><table class="nx-table"><thead><tr><th>Name</th><th>Email</th><th>Platform</th><th>Role</th><th></th></tr></thead>' +
+      '<tbody data-members="' + orgId + '">' + rows + '</tbody></table></div>' + cap +
       '<form class="nx-form nx-form--inline nx-ajax" data-ajax="add-member" method="POST" action="/admin/add-member">' +
         '<input type="hidden" name="csrf_token" value="' + esc(CSRF) + '"><input type="hidden" name="organization_id" value="' + orgId + '">' +
         '<input name="email" type="email" placeholder="existing user email" required>' +

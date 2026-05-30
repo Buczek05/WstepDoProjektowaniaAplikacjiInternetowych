@@ -113,6 +113,7 @@ $chanTotal     = array_sum(array_map(fn($r) => (float)$r['revenue'], $salesChann
         <div class="nx-panel-head">
           <div><h2>Recent Sales</h2><small>Transaction history<?= ($channel || $country) ? ' · filtered' : ' across all channels' ?></small></div>
         </div>
+        <div class="nx-table-wrap">
         <table class="nx-table">
           <thead><tr><th>Order ID</th><th>Customer</th><th>Channel</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
           <tbody>
@@ -129,6 +130,7 @@ $chanTotal     = array_sum(array_map(fn($r) => (float)$r['revenue'], $salesChann
             <?php if (!$recentSales): ?><tr><td colspan="6" class="nx-muted">No sales yet</td></tr><?php endif; ?>
           </tbody>
         </table>
+        </div>
       </section>
 
       <?php endif; ?>

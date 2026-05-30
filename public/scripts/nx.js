@@ -1,3 +1,17 @@
+// NexusOS — mobile side-drawer navigation (off-canvas).
+(function () {
+  function drawer() { return document.querySelector('[data-drawer]'); }
+  function backdrop() { return document.querySelector('[data-nav-backdrop]'); }
+  function open() { var d = drawer(), b = backdrop(); if (d) d.classList.add('is-open'); if (b) b.hidden = false; document.body.classList.add('nx-nav-open'); }
+  function close() { var d = drawer(), b = backdrop(); if (d) d.classList.remove('is-open'); if (b) b.hidden = true; document.body.classList.remove('nx-nav-open'); }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-nav-toggle]')) { e.preventDefault(); drawer() && drawer().classList.contains('is-open') ? close() : open(); }
+    else if (e.target.closest('[data-nav-backdrop]')) { close(); }
+    else if (e.target.closest('.nx-nav a')) { close(); } // close after navigating
+  });
+  window.addEventListener('resize', function () { if (window.innerWidth > 860) close(); });
+})();
+
 // NexusOS charts — turns every <canvas.nx-canvas data-chart="..."> into a
 // Chart.js chart with hover tooltips, a date X-axis and a value Y-axis.
 document.addEventListener('DOMContentLoaded', function () {

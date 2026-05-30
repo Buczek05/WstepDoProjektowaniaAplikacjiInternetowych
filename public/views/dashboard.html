@@ -128,6 +128,7 @@ $trendMax   = $revenueTrend ? max(array_map(fn($r) => (float)$r['revenue'], $rev
           <h2>Recent Sales</h2>
           <small>Transaction history across all channels</small>
         </div>
+        <div class="nx-table-wrap">
         <table class="nx-table">
           <thead>
             <tr><th>Order ID</th><th>Customer</th><th>Channel</th><th>Amount</th><th>Status</th><th>Date</th></tr>
@@ -148,6 +149,7 @@ $trendMax   = $revenueTrend ? max(array_map(fn($r) => (float)$r['revenue'], $rev
             <?php endif; ?>
           </tbody>
         </table>
+        </div>
       </section>
 
       <?php endif; ?>

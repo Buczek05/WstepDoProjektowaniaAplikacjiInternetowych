@@ -30,6 +30,7 @@ $security = [
       <div class="nx-two-col">
         <section class="nx-panel">
           <div class="nx-panel-head"><h2>Your Workspaces</h2><small><?= count($memberships) ?> total</small></div>
+          <div class="nx-table-wrap">
           <table class="nx-table">
             <thead><tr><th>Company</th><th>Plan</th><th>Role</th></tr></thead>
             <tbody>
@@ -43,6 +44,7 @@ $security = [
               <?php if (!$memberships): ?><tr><td colspan="3" class="nx-muted">No workspaces</td></tr><?php endif; ?>
             </tbody>
           </table>
+          </div>
         </section>
 
         <section class="nx-panel">

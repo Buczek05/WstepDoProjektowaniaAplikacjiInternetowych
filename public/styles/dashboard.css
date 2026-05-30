@@ -13,7 +13,24 @@
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;            /* never a page-level horizontal scrollbar */
 }
+.nx, .nx *, .nx *::before, .nx *::after { box-sizing: border-box; }
+
+/* Tables scroll inside their own container, not the page */
+.nx-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nx-table { min-width: 520px; }
+
+/* Hamburger + off-canvas backdrop (mobile/tablet only) */
+.nx-burger { display: none; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: .5rem .65rem; font-size: 1rem; cursor: pointer; }
+.nx-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 39; }
+@media (min-width: 981px) { .nx-drawer { display: contents; } }  /* desktop: nav+user inline */
+
+/* Let clusters wrap instead of overflowing in tight zones */
+.nx-hero { flex-wrap: wrap; }
+.nx-nav { flex-wrap: wrap; }
+.nx-filter { flex-wrap: wrap; }
+.nx-panel-head { flex-wrap: wrap; gap: .6rem; }
 
 /* Top bar */
 .nx-topbar {
@@ -291,7 +308,46 @@ button.nx-switch-item:hover { background: var(--panel-2); }
 .nx-empty i { font-size: 2.5rem; color: var(--accent); }
 .nx-empty h2 { margin: .8rem 0 .3rem; color: var(--text); }
 
-@media (max-width: 900px) {
-  .nx-kpis, .nx-two-col { grid-template-columns: 1fr; }
+/* ---- Tablet ---- */
+@media (max-width: 980px) {
+  .nx-kpis { grid-template-columns: repeat(2, 1fr); }
   .nx-user .nx-email { display: none; }
+
+  /* Top nav becomes an off-canvas side drawer */
+  .nx-burger { display: inline-flex; align-items: center; }
+  .nx-topbar { gap: .8rem; }
+  .nx-drawer {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 280px; max-width: 82vw;
+    transform: translateX(-100%); transition: transform .25s ease;
+    background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: stretch; gap: .35rem;
+    padding: 1rem; z-index: 40; overflow-y: auto;
+  }
+  .nx-drawer.is-open { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,.55); }
+  .nx-nav { flex-direction: column; align-items: stretch; margin-left: 0; gap: .2rem; }
+  .nx-nav a { padding: .7rem .8rem; }
+  .nx-user { flex-direction: column; align-items: stretch; margin-left: 0; gap: .6rem; margin-top: .6rem; padding-top: .8rem; border-top: 1px solid var(--border); }
+  .nx-user .nx-email { display: block; font-size: .8rem; }
+  .nx-switch { width: 100%; }
+  .nx-switch > summary { justify-content: space-between; }
+  .nx-switch-menu { position: static; min-width: 0; box-shadow: none; max-height: none; margin-top: .4rem; }
+  .nx-logout { justify-content: center; }
+  body.nx-nav-open { overflow: hidden; }
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 640px) {
+  .nx-shell { padding: 1rem .9rem; }
+  .nx-kpis, .nx-two-col, .nx-regions { grid-template-columns: 1fr; }
+  .nx-hero { gap: .7rem; }
+  .nx-hero h1 { font-size: 1.55rem; }
+  .nx-brand small { display: none; }
+  .nx-card-value { font-size: 1.6rem; }
+  .nx-co-head { flex-wrap: wrap; }
+  .nx-co-count { margin-left: auto; }
+  .nx-search input { min-width: 0; width: 100%; }
+  .nx-search { width: 100%; }
+  .nx-form--inline { flex-direction: column; align-items: stretch; }
+  .nx-form--inline input, .nx-form--inline select, .nx-form--inline button { width: 100%; }
+  .nx-modal-card { max-width: 100%; }
 }
