@@ -25,8 +25,10 @@ class GlobalController extends AppController {
         ];
 
         if ($workspace && $to) {
-            $orgId = (int)$workspace['id'];
-            $from  = date('Y-m-d', strtotime($to . ' -29 days'));
+            $orgId        = (int)$workspace['id'];
+            $days         = $this->periodDays();
+            $from         = $this->periodFrom($to, $days);
+            $vars['days'] = $days;
             $vars += [
                 'summary' => $stats->getGlobalSummary($orgId, $from, $to),
                 'regions' => $stats->getRegions($orgId, $from, $to),

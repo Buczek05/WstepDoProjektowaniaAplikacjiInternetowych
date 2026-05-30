@@ -106,21 +106,37 @@ class StatsRepository extends Repository {
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Latest individual sales (the "Recent Sales" table). */
-    public function getRecentSales(int $orgId, int $limit = 8): array
+    /** Channels for a tenant (for the channel filter dropdown). */
+    public function getChannels(int $orgId): array
     {
-        $limit = max(1, min(50, $limit)); // clamp; inlined (PDO can't bind LIMIT well)
+        $q = $this->database->prepare(
+            "SELECT id, name, code FROM channels WHERE organization_id = :org ORDER BY name"
+        );
+        $q->execute(['org' => $orgId]);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Latest individual sales (the "Recent Sales" table), optionally by channel code. */
+    public function getRecentSales(int $orgId, int $limit = 8, ?string $channelCode = null): array
+    {
+        $limit  = max(1, min(50, $limit)); // clamp; inlined (PDO can't bind LIMIT well)
+        $params = ['org' => $orgId];
+        $where  = 'o.organization_id = :org';
+        if ($channelCode !== null && $channelCode !== '') {
+            $where .= ' AND ch.code = :code';
+            $params['code'] = $channelCode;
+        }
         $query = $this->database->prepare(
             "SELECT o.order_code, cu.full_name AS customer, ch.name AS channel,
                     o.total_amount, o.status, o.ordered_at::text AS ordered_at
              FROM orders o
              LEFT JOIN customers cu ON cu.id = o.customer_id
              JOIN channels ch ON ch.id = o.channel_id
-             WHERE o.organization_id = :org
+             WHERE $where
              ORDER BY o.ordered_at DESC
              LIMIT $limit"
         );
-        $query->execute(['org' => $orgId]);
+        $query->execute($params);
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 

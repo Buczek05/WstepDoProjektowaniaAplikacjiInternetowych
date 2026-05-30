@@ -37,12 +37,14 @@ class DashboardController extends AppController {
             ]);
         }
 
-        // Trailing 30-day window ending on the latest processed day.
-        $from = date('Y-m-d', strtotime($to . ' -29 days'));
+        // Trailing window ending on the latest processed day (?days= filter).
+        $days = $this->periodDays();
+        $from = $this->periodFrom($to, $days);
 
         return $this->render('dashboard', [
             'title'         => 'Dashboard',
             'active'        => 'dashboard',
+            'days'          => $days,
             'workspace'     => $workspace,
             'statDate'      => $to,
             'kpis'          => $stats->getHeadlineKpis($orgId, $to),

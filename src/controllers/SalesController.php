@@ -26,13 +26,26 @@ class SalesController extends AppController {
 
         if ($workspace && $to) {
             $orgId = (int)$workspace['id'];
-            $from  = date('Y-m-d', strtotime($to . ' -29 days'));
+            $days  = $this->periodDays();
+            $from  = $this->periodFrom($to, $days);
+
+            // Optional channel filter (?channel=code) for the Recent Sales table.
+            $channels = $stats->getChannels($orgId);
+            $valid    = array_column($channels, 'code');
+            $channel  = $_GET['channel'] ?? '';
+            if (!in_array($channel, $valid, true)) {
+                $channel = '';
+            }
+
             $vars += [
+                'days'          => $days,
+                'channels'      => $channels,
+                'channel'       => $channel,
                 'totals'        => $stats->getRangeTotals($orgId, $from, $to),
                 'salesCategory' => $stats->getSalesByCategory($orgId, $from, $to),
                 'salesChannel'  => $stats->getSalesByChannel($orgId, $from, $to),
                 'revenueTrend'  => $stats->getRevenueTrend($orgId, $from, $to),
-                'recentSales'   => $stats->getRecentSales($orgId, 15),
+                'recentSales'   => $stats->getRecentSales($orgId, 15, $channel),
             ];
         }
 

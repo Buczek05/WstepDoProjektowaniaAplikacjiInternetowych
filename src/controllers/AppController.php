@@ -35,6 +35,20 @@ class AppController {
         }
     }
 
+    /** Selected reporting window in days from ?days=, clamped to an allow-list. */
+    protected function periodDays(): int
+    {
+        $allowed = [7, 30, 90, 365];
+        $days    = (int)($_GET['days'] ?? 30);
+        return in_array($days, $allowed, true) ? $days : 30;
+    }
+
+    /** Start date for a trailing window of $days ending on $to (inclusive). */
+    protected function periodFrom(string $to, int $days): string
+    {
+        return date('Y-m-d', strtotime($to . ' -' . ($days - 1) . ' days'));
+    }
+
     protected function redirect(string $path): void
     {
         $url = "http://{$_SERVER['HTTP_HOST']}";

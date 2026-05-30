@@ -2,6 +2,7 @@
 <?php
 $summary = $summary ?? ['revenue' => 0, 'orders' => 0, 'countries' => 0];
 $regions = $regions ?? [];
+$days    = $days    ?? 30;
 ?>
 <!doctype html>
 <html lang="en">
@@ -15,8 +16,11 @@ $regions = $regions ?? [];
 
     <main class="nx-shell">
       <section class="nx-hero">
-        <div><span class="eyebrow">Global</span><h1>Global Performance</h1></div>
-        <p class="nx-hero-date"><?= !empty($statDate) ? 'Real-time market insights · last 30 days' : 'No processed data yet' ?></p>
+        <div>
+          <span class="eyebrow">Global</span><h1>Global Performance</h1>
+          <p class="nx-hero-date"><?= !empty($statDate) ? 'Real-time market insights · last ' . (int)$days . ' days' : 'No processed data yet' ?></p>
+        </div>
+        <?php if (!empty($statDate)): ?><?= nx_period_filter($days) ?><?php endif; ?>
       </section>
 
       <?php if (empty($statDate)): ?>

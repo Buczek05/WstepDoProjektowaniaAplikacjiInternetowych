@@ -5,6 +5,7 @@ $salesChannel  = $salesChannel  ?? [];
 $salesCategory = $salesCategory ?? [];
 $revenueTrend  = $revenueTrend  ?? [];
 $recentSales   = $recentSales   ?? [];
+$days          = $days          ?? 30;
 
 $kpiCards = [
     ['key' => 'total_revenue',   'label' => 'Total Revenue',   'icon' => 'fa-sack-dollar'],
@@ -31,14 +32,15 @@ $trendMax   = $revenueTrend ? max(array_map(fn($r) => (float)$r['revenue'], $rev
         <div>
           <span class="eyebrow">Dashboard</span>
           <h1>Sales performance</h1>
+          <p class="nx-hero-date">
+            <?php if (!empty($statDate)): ?>
+              Last <?= (int)$days ?> days · ending <?= htmlspecialchars(date('M j, Y', strtotime($statDate)), ENT_QUOTES, 'UTF-8') ?>
+            <?php else: ?>
+              No processed data yet
+            <?php endif; ?>
+          </p>
         </div>
-        <p class="nx-hero-date">
-          <?php if (!empty($statDate)): ?>
-            Overview for <?= htmlspecialchars(date('M j, Y', strtotime($statDate)), ENT_QUOTES, 'UTF-8') ?>
-          <?php else: ?>
-            No processed data yet
-          <?php endif; ?>
-        </p>
+        <?php if (!empty($statDate)): ?><?= nx_period_filter($days) ?><?php endif; ?>
       </section>
 
       <?php if (empty($statDate)): ?>
@@ -75,18 +77,7 @@ $trendMax   = $revenueTrend ? max(array_map(fn($r) => (float)$r['revenue'], $rev
       </section>
 
       <!-- Revenue trend -->
-      <section class="nx-panel nx-trend">
-        <div class="nx-panel-head">
-          <h2>Revenue trend</h2>
-          <small>Daily revenue over the last 30 days</small>
-        </div>
-        <div class="nx-bars">
-          <?php foreach ($revenueTrend as $pt): $h = $trendMax > 0 ? max(3, round(100 * (float)$pt['revenue'] / $trendMax)) : 3; ?>
-            <span class="nx-bar" style="height: <?= $h ?>%"
-                  title="<?= htmlspecialchars(date('M j', strtotime($pt['day'])) . ': ' . nx_money($pt['revenue']), ENT_QUOTES, 'UTF-8') ?>"></span>
-          <?php endforeach; ?>
-        </div>
-      </section>
+      <?= nx_chart($revenueTrend, 'day', 'revenue', 'currency', 'Revenue trend', 'Daily revenue · hover a bar for the exact value') ?>
 
       <div class="nx-two-col">
         <!-- Sales by category -->

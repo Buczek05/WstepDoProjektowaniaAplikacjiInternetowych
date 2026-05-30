@@ -3,6 +3,7 @@
 $cards      = $cards      ?? [];
 $byPlatform = $byPlatform ?? [];
 $trend      = $trend      ?? [];
+$days       = $days       ?? 30;
 $platformLabel = [
     'amazon_ads' => ['Amazon Ads',  'fa-brands fa-amazon'],
     'google_ads' => ['Google Ads',  'fa-brands fa-google'],
@@ -24,8 +25,11 @@ $totalRev   = array_sum(array_map(fn($r) => (float)$r['revenue'], $byPlatform));
 
     <main class="nx-shell">
       <section class="nx-hero">
-        <div><span class="eyebrow">Marketing</span><h1>Marketing Analytics</h1></div>
-        <p class="nx-hero-date"><?= !empty($statDate) ? 'Marketplace performance for ' . htmlspecialchars(date('M j, Y', strtotime($statDate)), ENT_QUOTES, 'UTF-8') : 'No processed data yet' ?></p>
+        <div>
+          <span class="eyebrow">Marketing</span><h1>Marketing Analytics</h1>
+          <p class="nx-hero-date"><?= !empty($statDate) ? 'Latest ' . (int)$days . '-day window · cards for ' . htmlspecialchars(date('M j, Y', strtotime($statDate)), ENT_QUOTES, 'UTF-8') : 'No processed data yet' ?></p>
+        </div>
+        <?php if (!empty($statDate)): ?><?= nx_period_filter($days) ?><?php endif; ?>
       </section>
 
       <?php if (empty($statDate)): ?>
@@ -54,14 +58,7 @@ $totalRev   = array_sum(array_map(fn($r) => (float)$r['revenue'], $byPlatform));
       </section>
 
       <!-- ROI trend -->
-      <section class="nx-panel nx-trend">
-        <div class="nx-panel-head"><h2>ROI Trend</h2><small>Aggregated daily ROI across marketplaces (last 30 days)</small></div>
-        <div class="nx-bars">
-          <?php foreach ($trend as $pt): $h = $roiMax > 0 ? max(3, round(100 * (float)$pt['roi'] / $roiMax)) : 3; ?>
-            <span class="nx-bar" style="height: <?= $h ?>%" title="<?= htmlspecialchars(date('M j', strtotime($pt['day'])) . ': ' . number_format((float)$pt['roi'], 2) . 'x', ENT_QUOTES, 'UTF-8') ?>"></span>
-          <?php endforeach; ?>
-        </div>
-      </section>
+      <?= nx_chart($trend, 'day', 'roi', 'ratio', 'ROI Trend', 'Aggregated daily ROI across marketplaces · hover for value') ?>
 
       <!-- Per-platform breakdown over the window -->
       <section class="nx-panel">

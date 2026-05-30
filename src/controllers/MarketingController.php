@@ -25,8 +25,10 @@ class MarketingController extends AppController {
         ];
 
         if ($workspace && $to) {
-            $orgId = (int)$workspace['id'];
-            $from  = date('Y-m-d', strtotime($to . ' -29 days'));
+            $orgId        = (int)$workspace['id'];
+            $days         = $this->periodDays();
+            $from         = $this->periodFrom($to, $days);
+            $vars['days'] = $days;
             $vars += [
                 'cards'      => $stats->getMarketingCards($orgId, $to),
                 'byPlatform' => $stats->getMarketingByPlatform($orgId, $from, $to),

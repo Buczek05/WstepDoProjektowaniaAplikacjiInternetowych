@@ -131,10 +131,25 @@ button.nx-switch-item:hover { background: var(--panel-2); }
 .nx-panel-head small { color: var(--muted); }
 .nx-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 
-/* Trend bar chart */
-.nx-bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; }
-.nx-bar { flex: 1; min-width: 4px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--accent), #2a3a7a); transition: filter .15s; }
-.nx-bar:hover { filter: brightness(1.4); }
+/* Chart.js canvas */
+.nx-canvas-wrap { position: relative; height: 260px; }
+.nx-canvas-wrap .nx-muted { padding: 2rem 0; }
+
+/* Period filter */
+.nx-filter { display: inline-flex; gap: .25rem; padding: .25rem; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+.nx-filter a {
+  text-decoration: none; color: var(--muted); font-size: .8rem; font-weight: 700;
+  padding: .35rem .7rem; border-radius: 7px;
+}
+.nx-filter a:hover { color: var(--text); }
+.nx-filter a.is-active { color: #fff; background: var(--accent); }
+
+/* Channel filter select */
+.nx-channel-filter select {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: .4rem .6rem; font-size: .85rem; cursor: pointer;
+}
+.nx-channel-filter select:focus { outline: none; border-color: var(--accent); }
 
 /* Lists */
 .nx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
