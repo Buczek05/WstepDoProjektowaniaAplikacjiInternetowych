@@ -37,14 +37,16 @@ class DashboardController extends AppController {
             ]);
         }
 
-        // Trailing window ending on the latest processed day (?days= filter).
-        $days = $this->periodDays();
+        // Trailing window ending on the latest processed day (?days= filter,
+        // clamped to what the workspace plan allows).
+        $days = Plan::clampDays($workspace['plan'], $this->periodDays());
         $from = $this->periodFrom($to, $days);
 
         return $this->render('dashboard', [
             'title'         => 'Dashboard',
             'active'        => 'dashboard',
             'days'          => $days,
+            'allowedPeriods' => Plan::allowedPeriods($workspace['plan']),
             'workspace'     => $workspace,
             'statDate'      => $to,
             'kpis'          => $stats->getHeadlineKpisRange($orgId, $from, $to),

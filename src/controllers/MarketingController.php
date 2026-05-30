@@ -16,19 +16,24 @@ class MarketingController extends AppController {
         $workspace = $stats->getActiveWorkspace($userId);
         $to        = $workspace ? $stats->getLatestStatDate((int)$workspace['id']) : null;
 
+        $locked = $workspace && !Plan::hasMarketing($workspace['plan']);
+
         $vars = [
             'title'     => 'Marketing',
             'active'    => 'marketing',
             'workspace' => $workspace,
             'statDate'  => $to,
             'userEmail' => $_SESSION['user_email'] ?? '',
+            'locked'    => $locked,
+            'feature'   => 'Marketing analytics',
         ];
 
-        if ($workspace && $to) {
+        if ($workspace && $to && !$locked) {
             $orgId        = (int)$workspace['id'];
-            $days         = $this->periodDays();
+            $days         = Plan::clampDays($workspace['plan'], $this->periodDays());
             $from         = $this->periodFrom($to, $days);
             $vars['days'] = $days;
+            $vars['allowedPeriods'] = Plan::allowedPeriods($workspace['plan']);
             $vars += [
                 'cards'      => $stats->getMarketingCardsRange($orgId, $from, $to),
                 'byPlatform' => $stats->getMarketingByPlatform($orgId, $from, $to),

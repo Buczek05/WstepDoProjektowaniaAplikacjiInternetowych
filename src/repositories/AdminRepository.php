@@ -155,4 +155,116 @@ class AdminRepository extends Repository {
         );
         $q->execute(['org' => $orgId, 'uid' => $userId]);
     }
+
+    /* ===================== SCALE: pagination / search / counts ===================== */
+
+    /** SQL fragment + params restricting organizations to those the user manages. */
+    private function managedScope(int $userId): array
+    {
+        if ($this->isGlobalAdmin($userId)) {
+            return ['TRUE', []];
+        }
+        return [
+            "o.id IN (SELECT organization_id FROM organization_members WHERE user_id = :uid AND role = 'admin')",
+            ['uid' => $userId],
+        ];
+    }
+
+    public function countManagedOrganizations(int $userId, string $search = ''): int
+    {
+        [$where, $p] = $this->managedScope($userId);
+        if ($search !== '') { $where .= ' AND o.name ILIKE :q'; $p['q'] = '%' . $search . '%'; }
+        $q = $this->database->prepare("SELECT count(*) FROM organizations o WHERE $where");
+        $q->execute($p);
+        return (int)$q->fetchColumn();
+    }
+
+    /** One page of managed companies with member counts. */
+    public function getManagedOrganizationsPaged(int $userId, string $search, int $limit, int $offset): array
+    {
+        [$where, $p] = $this->managedScope($userId);
+        if ($search !== '') { $where .= ' AND o.name ILIKE :q'; $p['q'] = '%' . $search . '%'; }
+        $limit  = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+        $q = $this->database->prepare(
+            "SELECT o.id, o.name, o.plan,
+                    (SELECT count(*) FROM organization_members m WHERE m.organization_id = o.id) AS member_count
+             FROM organizations o WHERE $where ORDER BY o.name LIMIT $limit OFFSET $offset"
+        );
+        $q->execute($p);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Typeahead for the create-user company picker (managed only). */
+    public function searchManagedCompanies(int $userId, string $search, int $limit = 10): array
+    {
+        [$where, $p] = $this->managedScope($userId);
+        if ($search !== '') { $where .= ' AND o.name ILIKE :q'; $p['q'] = '%' . $search . '%'; }
+        $limit = max(1, min(20, $limit));
+        $q = $this->database->prepare(
+            "SELECT o.id, o.name, o.plan FROM organizations o WHERE $where ORDER BY o.name LIMIT $limit"
+        );
+        $q->execute($p);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getOrganization(int $orgId): ?array
+    {
+        $q = $this->database->prepare("SELECT id, name, plan FROM organizations WHERE id = :id");
+        $q->execute(['id' => $orgId]);
+        return $q->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function countMembers(int $orgId): int
+    {
+        $q = $this->database->prepare("SELECT count(*) FROM organization_members WHERE organization_id = :org");
+        $q->execute(['org' => $orgId]);
+        return (int)$q->fetchColumn();
+    }
+
+    public function isMember(int $orgId, int $userId): bool
+    {
+        $q = $this->database->prepare(
+            "SELECT 1 FROM organization_members WHERE organization_id = :org AND user_id = :uid LIMIT 1"
+        );
+        $q->execute(['org' => $orgId, 'uid' => $userId]);
+        return (bool)$q->fetchColumn();
+    }
+
+    /* ===================== EDIT ===================== */
+
+    public function updateOrganization(int $orgId, string $name, ?string $plan): void
+    {
+        if ($plan !== null) {
+            $q = $this->database->prepare("UPDATE organizations SET name = :n, plan = :p WHERE id = :id");
+            $q->execute(['n' => $name, 'p' => $plan, 'id' => $orgId]);
+        } else {
+            $q = $this->database->prepare("UPDATE organizations SET name = :n WHERE id = :id");
+            $q->execute(['n' => $name, 'id' => $orgId]);
+        }
+    }
+
+    public function getUser(int $userId): ?array
+    {
+        $q = $this->database->prepare("SELECT id, full_name, email, role FROM users WHERE id = :id");
+        $q->execute(['id' => $userId]);
+        return $q->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function emailTakenByOther(string $email, int $excludeId): bool
+    {
+        $q = $this->database->prepare("SELECT 1 FROM users WHERE email = :em AND id <> :id LIMIT 1");
+        $q->execute(['em' => $email, 'id' => $excludeId]);
+        return (bool)$q->fetchColumn();
+    }
+
+    public function updateUser(int $userId, string $fullName, string $email, ?string $globalRole, ?string $hashedPassword): void
+    {
+        $sets = ['full_name = :fn', 'email = :em', 'updated_at = now()'];
+        $p    = ['fn' => $fullName, 'em' => $email, 'id' => $userId];
+        if ($globalRole !== null)     { $sets[] = 'role = :role'; $p['role'] = $globalRole; }
+        if ($hashedPassword !== null) { $sets[] = 'password = :pw'; $p['pw'] = $hashedPassword; }
+        $q = $this->database->prepare("UPDATE users SET " . implode(', ', $sets) . " WHERE id = :id");
+        $q->execute($p);
+    }
 }

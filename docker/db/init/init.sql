@@ -1509,3 +1509,11 @@ BEGIN
 
   PERFORM seed_org_demo(v_org, CURRENT_DATE - 364, CURRENT_DATE);
 END $$;
+
+
+-- =============================================================================
+-- PLANS — normalize to exactly two tiers: 'Free' and 'Pro'. Any legacy label
+-- containing "pro"/"premium" becomes 'Pro', everything else 'Free'.
+-- =============================================================================
+UPDATE organizations
+SET plan = CASE WHEN lower(plan) LIKE '%pro%' OR lower(plan) LIKE '%premium%' THEN 'Pro' ELSE 'Free' END;

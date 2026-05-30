@@ -26,16 +26,31 @@ if (!function_exists('nx_fmt_value')) {
              . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 
-    /** Period (date-range) filter — links preserve other query params (e.g. channel). */
-    function nx_period_filter($activeDays) {
-        $opts = [7 => '7D', 30 => '30D', 90 => '90D', 365 => '1Y'];
+    /** Period (date-range) filter — only the periods $allowed by the plan are shown. */
+    function nx_period_filter($activeDays, array $allowed = [7, 30, 90, 365]) {
+        $labels = [7 => '7D', 30 => '30D', 90 => '90D', 365 => '1Y'];
         $out  = '<div class="nx-filter" role="group" aria-label="Reporting period">';
-        foreach ($opts as $d => $label) {
+        foreach ($allowed as $d) {
             $qs   = http_build_query(array_merge($_GET, ['days' => $d]));
-            $cls  = (int)$activeDays === $d ? 'is-active' : '';
-            $out .= '<a class="' . $cls . '" href="?' . htmlspecialchars($qs, ENT_QUOTES, 'UTF-8') . '">' . $label . '</a>';
+            $cls  = (int)$activeDays === (int)$d ? 'is-active' : '';
+            $out .= '<a class="' . $cls . '" href="?' . htmlspecialchars($qs, ENT_QUOTES, 'UTF-8') . '">' . ($labels[$d] ?? $d) . '</a>';
+        }
+        // hint that more ranges exist on Pro
+        if (count($allowed) < 4) {
+            $out .= '<span class="nx-filter-lock" title="Longer ranges are a Pro feature"><i class="fa-solid fa-lock"></i> Pro</span>';
         }
         return $out . '</div>';
+    }
+
+    /** "This is a Pro feature" panel shown when a Free workspace hits a gate. */
+    function nx_upgrade_panel($feature) {
+        $f = htmlspecialchars((string)$feature, ENT_QUOTES, 'UTF-8');
+        return '<section class="nx-empty nx-locked">'
+             . '<i class="fa-solid fa-lock"></i>'
+             . '<h2>' . $f . ' is a Pro feature</h2>'
+             . '<p>This workspace is on the <strong>Free</strong> plan. Upgrade to <strong>Pro</strong> to unlock '
+             . 'Marketing &amp; Global analytics and longer reporting ranges.</p>'
+             . '</section>';
     }
 
     /**

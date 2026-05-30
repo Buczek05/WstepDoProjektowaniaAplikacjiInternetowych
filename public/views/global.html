@@ -3,6 +3,8 @@
 $summary = $summary ?? ['revenue' => 0, 'orders' => 0, 'countries' => 0];
 $regions = $regions ?? [];
 $days    = $days    ?? 30;
+$locked  = $locked  ?? false;
+$allowedPeriods = $allowedPeriods ?? [7, 30, 90, 365];
 $regLabels = array_map(fn($r) => $r->countryName, $regions);
 $regValues = array_map(fn($r) => $r->revenue->getAmount(), $regions);
 ?>
@@ -20,12 +22,14 @@ $regValues = array_map(fn($r) => $r->revenue->getAmount(), $regions);
       <section class="nx-hero">
         <div>
           <span class="eyebrow">Global</span><h1>Global Performance</h1>
-          <p class="nx-hero-date"><?= !empty($statDate) ? 'Real-time market insights · last ' . (int)$days . ' days' : 'No processed data yet' ?></p>
+          <p class="nx-hero-date"><?= $locked ? 'Pro feature' : (!empty($statDate) ? 'Real-time market insights · last ' . (int)$days . ' days' : 'No processed data yet') ?></p>
         </div>
-        <?php if (!empty($statDate)): ?><?= nx_period_filter($days) ?><?php endif; ?>
+        <?php if (!$locked && !empty($statDate)): ?><?= nx_period_filter($days, $allowedPeriods) ?><?php endif; ?>
       </section>
 
-      <?php if (empty($statDate)): ?>
+      <?php if ($locked): ?>
+        <?= nx_upgrade_panel($feature ?? 'Global performance') ?>
+      <?php elseif (empty($statDate)): ?>
         <section class="nx-empty"><i class="fa-solid fa-database"></i><h2>No statistics available</h2></section>
       <?php else: ?>
 

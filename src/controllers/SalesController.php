@@ -26,8 +26,9 @@ class SalesController extends AppController {
 
         if ($workspace && $to) {
             $orgId = (int)$workspace['id'];
-            $days  = $this->periodDays();
+            $days  = Plan::clampDays($workspace['plan'], $this->periodDays());
             $from  = $this->periodFrom($to, $days);
+            $vars['allowedPeriods'] = Plan::allowedPeriods($workspace['plan']);
 
             // Optional channel (?channel=code) and country (?country=id) filters
             // — both scope the whole page and combine.

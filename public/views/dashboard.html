@@ -6,6 +6,7 @@ $salesCategory = $salesCategory ?? [];
 $revenueTrend  = $revenueTrend  ?? [];
 $recentSales   = $recentSales   ?? [];
 $days          = $days          ?? 30;
+$allowedPeriods = $allowedPeriods ?? [7, 30, 90, 365];
 
 $kpiCards = [
     ['key' => 'total_revenue',   'label' => 'Total Revenue',   'icon' => 'fa-sack-dollar'],
@@ -40,7 +41,7 @@ $trendMax   = $revenueTrend ? max(array_map(fn($r) => (float)$r['revenue'], $rev
             <?php endif; ?>
           </p>
         </div>
-        <?php if (!empty($statDate)): ?><?= nx_period_filter($days) ?><?php endif; ?>
+        <?php if (!empty($statDate)): ?><?= nx_period_filter($days, $allowedPeriods) ?><?php endif; ?>
       </section>
 
       <?php if (empty($statDate)): ?>

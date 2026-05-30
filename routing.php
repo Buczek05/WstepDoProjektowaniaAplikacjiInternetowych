@@ -74,6 +74,30 @@ class Routing {
             'controller' => 'AdminController',
             'action'     => 'removeMember',
         ],
+        'admin/companies' => [
+            'controller' => 'AdminController',
+            'action'     => 'companies',
+        ],
+        'admin/members' => [
+            'controller' => 'AdminController',
+            'action'     => 'members',
+        ],
+        'admin/search-companies' => [
+            'controller' => 'AdminController',
+            'action'     => 'searchCompanies',
+        ],
+        'admin/update-company' => [
+            'controller' => 'AdminController',
+            'action'     => 'updateCompany',
+        ],
+        'admin/update-user' => [
+            'controller' => 'AdminController',
+            'action'     => 'updateUser',
+        ],
+        'admin/set-role' => [
+            'controller' => 'AdminController',
+            'action'     => 'setRole',
+        ],
     ];
 
     private static function getController(string $controllerClass): object

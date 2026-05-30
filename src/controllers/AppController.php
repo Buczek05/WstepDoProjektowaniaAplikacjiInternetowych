@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../models/Plan.php';
+
 class AppController {
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) {

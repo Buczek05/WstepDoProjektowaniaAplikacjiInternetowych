@@ -16,19 +16,24 @@ class GlobalController extends AppController {
         $workspace = $stats->getActiveWorkspace($userId);
         $to        = $workspace ? $stats->getLatestStatDate((int)$workspace['id']) : null;
 
+        $locked = $workspace && !Plan::hasGlobal($workspace['plan']);
+
         $vars = [
             'title'     => 'Global',
             'active'    => 'global',
             'workspace' => $workspace,
             'statDate'  => $to,
             'userEmail' => $_SESSION['user_email'] ?? '',
+            'locked'    => $locked,
+            'feature'   => 'Global performance',
         ];
 
-        if ($workspace && $to) {
+        if ($workspace && $to && !$locked) {
             $orgId        = (int)$workspace['id'];
-            $days         = $this->periodDays();
+            $days         = Plan::clampDays($workspace['plan'], $this->periodDays());
             $from         = $this->periodFrom($to, $days);
             $vars['days'] = $days;
+            $vars['allowedPeriods'] = Plan::allowedPeriods($workspace['plan']);
             $vars += [
                 'summary' => $stats->getGlobalSummary($orgId, $from, $to),
                 'regions' => $stats->getRegions($orgId, $from, $to),

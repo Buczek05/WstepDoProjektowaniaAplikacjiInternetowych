@@ -1,12 +1,16 @@
 <?php include __DIR__ . '/partials/nx-helpers.html'; ?>
 <?php
-$isGlobal = $isGlobal ?? false;
-$managed  = $managed  ?? [];
-$orgs     = $orgs     ?? [];
-$roles    = $roles    ?? ['admin', 'manager', 'analyst', 'viewer'];
-$flash    = $flash    ?? null;
-$csrf     = $_SESSION['csrf_token'] ?? '';
-$roleBadge = fn($r) => 'badge badge--role-' . preg_replace('/[^a-z]/', '', strtolower((string)$r));
+$isGlobal  = $isGlobal  ?? false;
+$companies = $companies ?? [];
+$total     = $total     ?? 0;
+$page      = $page      ?? 1;
+$pages     = $pages     ?? 1;
+$search    = $search    ?? '';
+$roles     = $roles     ?? ['admin', 'manager', 'analyst', 'viewer'];
+$plans     = $plans     ?? ['Free', 'Pro'];
+$flash     = $flash     ?? null;
+$csrf      = $_SESSION['csrf_token'] ?? '';
+$E = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 ?>
 <!doctype html>
 <html lang="en">
@@ -14,41 +18,36 @@ $roleBadge = fn($r) => 'badge badge--role-' . preg_replace('/[^a-z]/', '', strto
     <?php include __DIR__ . '/partials/head.html'; ?>
     <link rel="stylesheet" type="text/css" href="public/styles/dashboard.css" />
     <script defer src="public/scripts/admin.js"></script>
-    <title><?= htmlspecialchars($title ?? 'Admin', ENT_QUOTES, 'UTF-8') ?></title>
+    <title><?= $E($title ?? 'Admin') ?></title>
   </head>
   <body class="nx">
     <?php include __DIR__ . '/partials/nx-header.html'; ?>
 
-    <main class="nx-shell" data-csrf="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+    <main class="nx-shell" data-csrf="<?= $E($csrf) ?>" data-global="<?= $isGlobal ? '1' : '0' ?>" data-page-size="20">
       <section class="nx-hero">
         <div>
           <span class="eyebrow">Admin</span>
           <h1>User &amp; Access Management</h1>
-          <p class="nx-hero-date">
-            <?= $isGlobal ? 'Global administrator — full platform access' : 'Company administrator — manage your companies' ?>
-          </p>
+          <p class="nx-hero-date"><?= $isGlobal ? 'Global administrator — full platform access' : 'Company administrator — manage your companies' ?></p>
         </div>
       </section>
 
       <div id="nx-toast" class="nx-toast" hidden></div>
-
       <?php if ($flash): ?>
-        <p class="nx-flash nx-flash--<?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>">
-          <?= htmlspecialchars($flash['msg'], ENT_QUOTES, 'UTF-8') ?>
-        </p>
+        <p class="nx-flash nx-flash--<?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>"><?= $E($flash['msg']) ?></p>
       <?php endif; ?>
 
+      <!-- Create forms -->
       <div class="nx-two-col">
         <?php if ($isGlobal): ?>
-        <!-- Create company (global admin only) -->
         <section class="nx-panel">
-          <div class="nx-panel-head"><h2>Create Company</h2><small>Global admin</small></div>
+          <div class="nx-panel-head"><h2><i class="fa-solid fa-building"></i> Create Company</h2><small>Global admin</small></div>
           <form class="nx-form nx-ajax" data-ajax="create-company" method="POST" action="/admin/create-company">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>" />
+            <input type="hidden" name="csrf_token" value="<?= $E($csrf) ?>" />
             <label>Company name <input name="name" type="text" maxlength="120" required /></label>
             <label>Plan
               <select name="plan">
-                <option>Free</option><option>Pro Workspace</option><option>Premium Workspace</option>
+                <?php foreach ($plans as $pl): ?><option value="<?= $E($pl) ?>"><?= $E($pl) ?></option><?php endforeach; ?>
               </select>
             </label>
             <button type="submit"><i class="fa-solid fa-plus"></i> Create company</button>
@@ -56,21 +55,19 @@ $roleBadge = fn($r) => 'badge badge--role-' . preg_replace('/[^a-z]/', '', strto
         </section>
         <?php endif; ?>
 
-        <!-- Create user -->
         <section class="nx-panel">
-          <div class="nx-panel-head"><h2>Create User</h2><small>Adds the user to a company</small></div>
-          <p class="nx-muted" data-no-company <?= $managed ? 'hidden' : '' ?>>You don't manage any company yet.</p>
-          <form class="nx-form nx-ajax" data-ajax="create-user" method="POST" action="/admin/create-user" <?= $managed ? '' : 'hidden' ?>>
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>" />
+          <div class="nx-panel-head"><h2><i class="fa-solid fa-user-plus"></i> Create User</h2><small>Adds the user to a company</small></div>
+          <form class="nx-form nx-ajax" data-ajax="create-user" method="POST" action="/admin/create-user" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="<?= $E($csrf) ?>" />
             <label>Full name <input name="full_name" type="text" maxlength="100" required /></label>
             <label>Email <input name="email" type="email" maxlength="100" required /></label>
             <label>Password <input name="password" type="password" minlength="8" maxlength="200" required /></label>
             <label>Company
-              <select name="organization_id" data-company-select required>
-                <?php foreach ($managed as $o): ?>
-                  <option value="<?= (int)$o['id'] ?>"><?= htmlspecialchars($o['name'], ENT_QUOTES, 'UTF-8') ?></option>
-                <?php endforeach; ?>
-              </select>
+              <div class="nx-typeahead">
+                <input type="text" data-company-input placeholder="Type to search companies…" autocomplete="off" required />
+                <input type="hidden" name="organization_id" data-company-id />
+                <ul class="nx-typeahead-list" data-company-results hidden></ul>
+              </div>
             </label>
             <label>Role in company
               <select name="member_role">
@@ -90,51 +87,38 @@ $roleBadge = fn($r) => 'badge badge--role-' . preg_replace('/[^a-z]/', '', strto
         </section>
       </div>
 
-      <!-- Companies & members -->
-      <div id="nx-companies" data-can-create-company="<?= $isGlobal ? '1' : '0' ?>">
-      <?php foreach ($orgs as $entry): $o = $entry['org']; $members = $entry['members']; ?>
-        <section class="nx-panel" data-org-panel="<?= (int)$o['id'] ?>">
-          <div class="nx-panel-head">
-            <div><h2><?= htmlspecialchars($o['name'], ENT_QUOTES, 'UTF-8') ?></h2>
-              <small><?= htmlspecialchars($o['plan'], ENT_QUOTES, 'UTF-8') ?> · <span data-count="<?= (int)$o['id'] ?>"><?= count($members) ?></span> members</small></div>
+      <!-- Companies: search + paginated list + lazy members -->
+      <section class="nx-panel">
+        <div class="nx-panel-head">
+          <div><h2><i class="fa-solid fa-buildings"></i> Companies</h2><small><span data-total><?= (int)$total ?></span> total</small></div>
+          <div class="nx-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" data-company-search value="<?= $E($search) ?>" placeholder="Search companies…" />
           </div>
+        </div>
 
-          <table class="nx-table">
-            <thead><tr><th>Name</th><th>Email</th><th>Platform</th><th>Company role</th><th></th></tr></thead>
-            <tbody data-members="<?= (int)$o['id'] ?>">
-              <?php foreach ($members as $m): ?>
-              <tr data-user="<?= (int)$m['id'] ?>">
-                <td><?= htmlspecialchars((string)($m['full_name'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
-                <td><?= htmlspecialchars($m['email'], ENT_QUOTES, 'UTF-8') ?></td>
-                <td><?php if ($m['global_role'] === 'admin'): ?><span class="badge badge--role-admin">Global admin</span><?php else: ?><span class="nx-muted">user</span><?php endif; ?></td>
-                <td><span class="<?= htmlspecialchars($roleBadge($m['member_role']), ENT_QUOTES, 'UTF-8') ?>"><?= ucfirst($m['member_role']) ?></span></td>
-                <td class="nx-row-action">
-                  <form class="nx-ajax" data-ajax="remove-member" method="POST" action="/admin/remove-member">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>" />
-                    <input type="hidden" name="organization_id" value="<?= (int)$o['id'] ?>" />
-                    <input type="hidden" name="user_id" value="<?= (int)$m['id'] ?>" />
-                    <button type="submit" class="nx-icon-btn" title="Remove member"><i class="fa-solid fa-user-minus"></i></button>
-                  </form>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-              <?php if (!$members): ?><tr data-empty><td colspan="5" class="nx-muted">No members</td></tr><?php endif; ?>
-            </tbody>
-          </table>
+        <div id="nx-companies" data-page="<?= (int)$page ?>" data-pages="<?= (int)$pages ?>">
+          <?php foreach ($companies as $c): $pro = Plan::isPro($c['plan']); ?>
+          <article class="nx-co" data-org="<?= (int)$c['id'] ?>" data-name="<?= $E($c['name']) ?>" data-plan="<?= $E(Plan::label($c['plan'])) ?>">
+            <header class="nx-co-head">
+              <button type="button" class="nx-co-toggle" data-toggle title="Show members"><i class="fa-solid fa-chevron-right"></i></button>
+              <span class="nx-co-name"><?= $E($c['name']) ?></span>
+              <span class="nx-plan-pill nx-plan-pill--<?= $pro ? 'pro' : 'free' ?>"><?php if ($pro): ?><i class="fa-solid fa-bolt"></i> <?php endif; ?><?= $E(Plan::label($c['plan'])) ?></span>
+              <span class="nx-co-count"><i class="fa-solid fa-users"></i> <span data-count="<?= (int)$c['id'] ?>"><?= (int)$c['member_count'] ?></span></span>
+              <button type="button" class="nx-icon-btn nx-co-editbtn" data-edit-company title="Edit company"><i class="fa-solid fa-pen"></i></button>
+            </header>
+            <div class="nx-co-body" data-body="<?= (int)$c['id'] ?>" hidden></div>
+          </article>
+          <?php endforeach; ?>
+          <?php if (!$companies): ?><p class="nx-muted" data-empty-companies>No companies found.</p><?php endif; ?>
+        </div>
 
-          <!-- Add existing user to this company -->
-          <form class="nx-form nx-form--inline nx-ajax" data-ajax="add-member" method="POST" action="/admin/add-member">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>" />
-            <input type="hidden" name="organization_id" value="<?= (int)$o['id'] ?>" />
-            <input name="email" type="email" placeholder="existing user email" required />
-            <select name="member_role">
-              <?php foreach ($roles as $r): ?><option value="<?= $r ?>" <?= $r === 'viewer' ? 'selected' : '' ?>><?= ucfirst($r) ?></option><?php endforeach; ?>
-            </select>
-            <button type="submit"><i class="fa-solid fa-user-plus"></i> Add member</button>
-          </form>
-        </section>
-      <?php endforeach; ?>
-      </div>
+        <div class="nx-pager" data-pager>
+          <button type="button" class="nx-page-btn" data-prev <?= $page <= 1 ? 'disabled' : '' ?>><i class="fa-solid fa-chevron-left"></i> Prev</button>
+          <span class="nx-page-info">Page <span data-page-cur><?= (int)$page ?></span> / <span data-page-max><?= (int)$pages ?></span></span>
+          <button type="button" class="nx-page-btn" data-next <?= $page >= $pages ? 'disabled' : '' ?>>Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </section>
     </main>
   </body>
 </html>
