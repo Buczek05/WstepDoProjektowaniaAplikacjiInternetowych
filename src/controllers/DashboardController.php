@@ -47,11 +47,11 @@ class DashboardController extends AppController {
             'days'          => $days,
             'workspace'     => $workspace,
             'statDate'      => $to,
-            'kpis'          => $stats->getHeadlineKpis($orgId, $to),
+            'kpis'          => $stats->getHeadlineKpisRange($orgId, $from, $to),
             'salesChannel'  => $stats->getSalesByChannel($orgId, $from, $to),
             'salesCategory' => $stats->getSalesByCategory($orgId, $from, $to),
             'revenueTrend'  => $stats->getRevenueTrend($orgId, $from, $to),
-            'recentSales'   => $stats->getRecentSales($orgId, 8),
+            'recentSales'   => $stats->getRecentSales($orgId, 8, null, $from, $to),
             'userEmail'     => $_SESSION['user_email'] ?? '',
         ]);
     }

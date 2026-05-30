@@ -37,15 +37,16 @@ class SalesController extends AppController {
                 $channel = '';
             }
 
+            $ch = $channel !== '' ? $channel : null;
             $vars += [
                 'days'          => $days,
                 'channels'      => $channels,
                 'channel'       => $channel,
-                'totals'        => $stats->getRangeTotals($orgId, $from, $to),
-                'salesCategory' => $stats->getSalesByCategory($orgId, $from, $to),
-                'salesChannel'  => $stats->getSalesByChannel($orgId, $from, $to),
-                'revenueTrend'  => $stats->getRevenueTrend($orgId, $from, $to),
-                'recentSales'   => $stats->getRecentSales($orgId, 15, $channel),
+                'totals'        => $stats->getRangeTotals($orgId, $from, $to, $ch),
+                'salesCategory' => $stats->getSalesByCategory($orgId, $from, $to, $ch),
+                'salesChannel'  => $stats->getSalesByChannel($orgId, $from, $to, $ch),
+                'revenueTrend'  => $stats->getRevenueTrend($orgId, $from, $to, $ch),
+                'recentSales'   => $stats->getRecentSales($orgId, 15, $ch, $from, $to),
             ];
         }
 

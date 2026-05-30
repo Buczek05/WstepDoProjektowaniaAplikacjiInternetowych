@@ -45,6 +45,63 @@ class StatsRepository extends Repository {
         return $date ?: null;
     }
 
+    /**
+     * Headline KPI cards aggregated over [from, to], keyed by metric_key, each
+     * with metric_value, target_value (summed over the window; rate averaged),
+     * delta_pct vs the previous equal-length window, and unit.
+     */
+    public function getHeadlineKpisRange(int $orgId, string $from, string $to): array
+    {
+        $len      = (int)((strtotime($to) - strtotime($from)) / 86400) + 1;
+        $prevTo   = date('Y-m-d', strtotime($from . ' -1 day'));
+        $prevFrom = date('Y-m-d', strtotime($prevTo . ' -' . ($len - 1) . ' day'));
+
+        $agg = $this->database->prepare(
+            "SELECT COALESCE(SUM(gross_revenue),0) AS rev, COALESCE(SUM(orders_count),0) AS ord
+             FROM fact_sales_daily WHERE organization_id = :org AND stat_date BETWEEN :f AND :t");
+        $ses = $this->database->prepare(
+            "SELECT COALESCE(SUM(sessions),0) FROM traffic_daily WHERE organization_id = :org AND stat_date BETWEEN :f AND :t");
+
+        $agg->execute(['org' => $orgId, 'f' => $from, 't' => $to]);          $cur     = $agg->fetch(PDO::FETCH_ASSOC);
+        $agg->execute(['org' => $orgId, 'f' => $prevFrom, 't' => $prevTo]);  $prev    = $agg->fetch(PDO::FETCH_ASSOC);
+        $ses->execute(['org' => $orgId, 'f' => $from, 't' => $to]);          $sesCur  = (int)$ses->fetchColumn();
+        $ses->execute(['org' => $orgId, 'f' => $prevFrom, 't' => $prevTo]);  $sesPrev = (int)$ses->fetchColumn();
+
+        $convCur  = $sesCur  > 0 ? 100 * (float)$cur['ord']  / $sesCur  : 0.0;
+        $convPrev = $sesPrev > 0 ? 100 * (float)$prev['ord'] / $sesPrev : 0.0;
+
+        $tq = $this->database->prepare(
+            "SELECT metric_key, SUM(target_value) AS s, AVG(target_value) AS a
+             FROM metric_targets WHERE organization_id = :org AND period = 'daily' AND period_start BETWEEN :f AND :t
+             GROUP BY metric_key");
+        $tq->execute(['org' => $orgId, 'f' => $from, 't' => $to]);
+        $tg = [];
+        foreach ($tq->fetchAll(PDO::FETCH_ASSOC) as $r) { $tg[$r['metric_key']] = $r; }
+
+        $delta = fn($c, $p) => $p > 0 ? round(100 * ($c - $p) / $p, 1) : null;
+
+        return [
+            'total_revenue' => [
+                'metric_value' => (float)$cur['rev'],
+                'target_value' => isset($tg['total_revenue']) ? (float)$tg['total_revenue']['s'] : null,
+                'delta_pct'    => $delta((float)$cur['rev'], (float)$prev['rev']),
+                'unit'         => 'currency',
+            ],
+            'total_orders' => [
+                'metric_value' => (float)$cur['ord'],
+                'target_value' => isset($tg['total_orders']) ? (float)$tg['total_orders']['s'] : null,
+                'delta_pct'    => $delta((float)$cur['ord'], (float)$prev['ord']),
+                'unit'         => 'count',
+            ],
+            'conversion_rate' => [
+                'metric_value' => round($convCur, 2),
+                'target_value' => isset($tg['conversion_rate']) ? round((float)$tg['conversion_rate']['a'], 2) : null,
+                'delta_pct'    => $convPrev > 0 ? round($convCur - $convPrev, 2) : null,
+                'unit'         => 'percent',
+            ],
+        ];
+    }
+
     /** Headline KPI cards for one day, keyed by metric_key (total_revenue, ...). */
     public function getHeadlineKpis(int $orgId, string $date): array
     {
@@ -62,24 +119,43 @@ class StatsRepository extends Repository {
         return $kpis;
     }
 
-    /** Sales grouped by channel over the trailing window [from, to]. */
-    public function getSalesByChannel(int $orgId, string $from, string $to): array
+    /** Sales grouped by channel over [from, to], optionally limited to one channel. */
+    public function getSalesByChannel(int $orgId, string $from, string $to, ?string $channelCode = null): array
     {
+        $cond = ''; $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
+        if ($channelCode) { $cond = ' AND ch.code = :code'; $p['code'] = $channelCode; }
         $query = $this->database->prepare(
             "SELECT ch.name, SUM(f.gross_revenue) AS revenue, SUM(f.orders_count) AS orders
              FROM fact_sales_daily f
              JOIN channels ch ON ch.id = f.channel_id
-             WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to
+             WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to $cond
              GROUP BY ch.name
              ORDER BY revenue DESC"
         );
-        $query->execute(['org' => $orgId, 'from' => $from, 'to' => $to]);
+        $query->execute($p);
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Sales grouped by category over the trailing window [from, to]. */
-    public function getSalesByCategory(int $orgId, string $from, string $to): array
+    /** Sales grouped by category over [from, to], optionally limited to one channel. */
+    public function getSalesByCategory(int $orgId, string $from, string $to, ?string $channelCode = null): array
     {
+        // fact_category_daily has no channel dimension, so when a channel filter
+        // is applied we aggregate from the raw orders/items instead.
+        if ($channelCode) {
+            $query = $this->database->prepare(
+                "SELECT cat.name, SUM(oi.line_total) AS revenue
+                 FROM orders o
+                 JOIN order_items oi ON oi.order_id = o.id
+                 JOIN categories cat ON cat.id = oi.category_id
+                 JOIN channels ch ON ch.id = o.channel_id
+                 WHERE o.organization_id = :org AND o.ordered_at::date BETWEEN :from AND :to
+                   AND o.status NOT IN ('cancelled','refunded') AND ch.code = :code
+                 GROUP BY cat.name ORDER BY revenue DESC"
+            );
+            $query->execute(['org' => $orgId, 'from' => $from, 'to' => $to, 'code' => $channelCode]);
+            return $query->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         $query = $this->database->prepare(
             "SELECT c.name, SUM(f.gross_revenue) AS revenue
              FROM fact_category_daily f
@@ -92,9 +168,20 @@ class StatsRepository extends Repository {
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Daily revenue series for the trailing window (for the trend chart). */
-    public function getRevenueTrend(int $orgId, string $from, string $to): array
+    /** Daily revenue series for the trend chart, optionally limited to one channel. */
+    public function getRevenueTrend(int $orgId, string $from, string $to, ?string $channelCode = null): array
     {
+        if ($channelCode) {
+            $query = $this->database->prepare(
+                "SELECT f.stat_date::text AS day, SUM(f.gross_revenue) AS revenue
+                 FROM fact_sales_daily f JOIN channels ch ON ch.id = f.channel_id
+                 WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to AND ch.code = :code
+                 GROUP BY f.stat_date ORDER BY f.stat_date"
+            );
+            $query->execute(['org' => $orgId, 'from' => $from, 'to' => $to, 'code' => $channelCode]);
+            return $query->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         $query = $this->database->prepare(
             "SELECT stat_date::text AS day, metric_value AS revenue
              FROM fact_kpi_daily
@@ -116,8 +203,8 @@ class StatsRepository extends Repository {
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Latest individual sales (the "Recent Sales" table), optionally by channel code. */
-    public function getRecentSales(int $orgId, int $limit = 8, ?string $channelCode = null): array
+    /** Latest individual sales, optionally by channel code and date window. */
+    public function getRecentSales(int $orgId, int $limit = 8, ?string $channelCode = null, ?string $from = null, ?string $to = null): array
     {
         $limit  = max(1, min(50, $limit)); // clamp; inlined (PDO can't bind LIMIT well)
         $params = ['org' => $orgId];
@@ -125,6 +212,11 @@ class StatsRepository extends Repository {
         if ($channelCode !== null && $channelCode !== '') {
             $where .= ' AND ch.code = :code';
             $params['code'] = $channelCode;
+        }
+        if ($from !== null && $to !== null) {
+            $where .= ' AND o.ordered_at::date BETWEEN :from AND :to';
+            $params['from'] = $from;
+            $params['to']   = $to;
         }
         $query = $this->database->prepare(
             "SELECT o.order_code, cu.full_name AS customer, ch.name AS channel,
@@ -142,24 +234,27 @@ class StatsRepository extends Repository {
 
     /* ===================== SALES PAGE ===================== */
 
-    /** Aggregate totals over a window (revenue, orders, units, sessions, conversion). */
-    public function getRangeTotals(int $orgId, string $from, string $to): array
+    /** Aggregate totals over a window, optionally limited to one channel. */
+    public function getRangeTotals(int $orgId, string $from, string $to, ?string $channelCode = null): array
     {
+        $cond = ''; $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
+        if ($channelCode) { $cond = ' AND ch.code = :code'; $p['code'] = $channelCode; }
+
         $q = $this->database->prepare(
-            "SELECT COALESCE(SUM(gross_revenue),0) AS revenue,
-                    COALESCE(SUM(orders_count),0) AS orders,
-                    COALESCE(SUM(units_sold),0)   AS units
-             FROM fact_sales_daily
-             WHERE organization_id = :org AND stat_date BETWEEN :from AND :to"
+            "SELECT COALESCE(SUM(f.gross_revenue),0) AS revenue,
+                    COALESCE(SUM(f.orders_count),0) AS orders,
+                    COALESCE(SUM(f.units_sold),0)   AS units
+             FROM fact_sales_daily f JOIN channels ch ON ch.id = f.channel_id
+             WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to $cond"
         );
-        $q->execute(['org' => $orgId, 'from' => $from, 'to' => $to]);
+        $q->execute($p);
         $row = $q->fetch(PDO::FETCH_ASSOC) ?: ['revenue' => 0, 'orders' => 0, 'units' => 0];
 
         $s = $this->database->prepare(
-            "SELECT COALESCE(SUM(sessions),0) FROM traffic_daily
-             WHERE organization_id = :org AND stat_date BETWEEN :from AND :to"
+            "SELECT COALESCE(SUM(t.sessions),0) FROM traffic_daily t JOIN channels ch ON ch.id = t.channel_id
+             WHERE t.organization_id = :org AND t.stat_date BETWEEN :from AND :to $cond"
         );
-        $s->execute(['org' => $orgId, 'from' => $from, 'to' => $to]);
+        $s->execute($p);
         $sessions = (int)$s->fetchColumn();
 
         $row['conversion'] = $sessions > 0 ? round(100 * (float)$row['orders'] / $sessions, 2) : 0.0;
@@ -180,6 +275,25 @@ class StatsRepository extends Repository {
              ORDER BY platform"
         );
         $q->execute(['org' => $orgId, 'd' => $date]);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Per-platform marketing cards aggregated over [from, to]. */
+    public function getMarketingCardsRange(int $orgId, string $from, string $to): array
+    {
+        $q = $this->database->prepare(
+            "SELECT platform,
+                    SUM(spend)              AS spend,
+                    SUM(budget)             AS budget,
+                    SUM(conversions)        AS conversions,
+                    SUM(attributed_revenue) AS attributed_revenue,
+                    CASE WHEN SUM(spend)  > 0 THEN round(SUM(attributed_revenue) / SUM(spend), 2) END AS roi,
+                    CASE WHEN SUM(budget) > 0 THEN round(100 * SUM(spend) / SUM(budget))         END AS budget_util
+             FROM ad_spend_daily
+             WHERE organization_id = :org AND stat_date BETWEEN :from AND :to
+             GROUP BY platform ORDER BY platform"
+        );
+        $q->execute(['org' => $orgId, 'from' => $from, 'to' => $to]);
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }
 

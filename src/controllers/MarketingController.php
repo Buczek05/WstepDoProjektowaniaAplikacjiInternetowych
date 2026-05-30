@@ -30,7 +30,7 @@ class MarketingController extends AppController {
             $from         = $this->periodFrom($to, $days);
             $vars['days'] = $days;
             $vars += [
-                'cards'      => $stats->getMarketingCards($orgId, $to),
+                'cards'      => $stats->getMarketingCardsRange($orgId, $from, $to),
                 'byPlatform' => $stats->getMarketingByPlatform($orgId, $from, $to),
                 'trend'      => $stats->getMarketingTrend($orgId, $from, $to),
             ];
