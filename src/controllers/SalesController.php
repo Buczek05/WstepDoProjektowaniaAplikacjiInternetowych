@@ -29,24 +29,30 @@ class SalesController extends AppController {
             $days  = $this->periodDays();
             $from  = $this->periodFrom($to, $days);
 
-            // Optional channel filter (?channel=code) for the Recent Sales table.
+            // Optional channel (?channel=code) and country (?country=id) filters
+            // — both scope the whole page and combine.
             $channels = $stats->getChannels($orgId);
-            $valid    = array_column($channels, 'code');
-            $channel  = $_GET['channel'] ?? '';
-            if (!in_array($channel, $valid, true)) {
-                $channel = '';
+            $channel  = in_array($_GET['channel'] ?? '', array_column($channels, 'code'), true) ? $_GET['channel'] : '';
+
+            $countries = $stats->getCountriesForOrg($orgId);
+            $countryId = (int)($_GET['country'] ?? 0);
+            if (!in_array($countryId, array_map('intval', array_column($countries, 'id')), true)) {
+                $countryId = 0;
             }
 
-            $ch = $channel !== '' ? $channel : null;
+            $ch  = $channel !== '' ? $channel : null;
+            $cty = $countryId ?: null;
             $vars += [
                 'days'          => $days,
                 'channels'      => $channels,
                 'channel'       => $channel,
-                'totals'        => $stats->getRangeTotals($orgId, $from, $to, $ch),
-                'salesCategory' => $stats->getSalesByCategory($orgId, $from, $to, $ch),
-                'salesChannel'  => $stats->getSalesByChannel($orgId, $from, $to, $ch),
-                'revenueTrend'  => $stats->getRevenueTrend($orgId, $from, $to, $ch),
-                'recentSales'   => $stats->getRecentSales($orgId, 15, $ch, $from, $to),
+                'countries'     => $countries,
+                'country'       => $countryId,
+                'totals'        => $stats->getRangeTotals($orgId, $from, $to, $ch, $cty),
+                'salesCategory' => $stats->getSalesByCategory($orgId, $from, $to, $ch, $cty),
+                'salesChannel'  => $stats->getSalesByChannel($orgId, $from, $to, $ch, $cty),
+                'revenueTrend'  => $stats->getRevenueTrend($orgId, $from, $to, $ch, $cty),
+                'recentSales'   => $stats->getRecentSales($orgId, 15, $ch, $from, $to, $cty),
             ];
         }
 

@@ -119,11 +119,12 @@ class StatsRepository extends Repository {
         return $kpis;
     }
 
-    /** Sales grouped by channel over [from, to], optionally limited to one channel. */
-    public function getSalesByChannel(int $orgId, string $from, string $to, ?string $channelCode = null): array
+    /** Sales grouped by channel over [from, to], optionally limited to one channel/country. */
+    public function getSalesByChannel(int $orgId, string $from, string $to, ?string $channelCode = null, ?int $countryId = null): array
     {
         $cond = ''; $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
-        if ($channelCode) { $cond = ' AND ch.code = :code'; $p['code'] = $channelCode; }
+        if ($channelCode) { $cond .= ' AND ch.code = :code'; $p['code'] = $channelCode; }
+        if ($countryId)   { $cond .= ' AND f.country_id = :country'; $p['country'] = $countryId; }
         $query = $this->database->prepare(
             "SELECT ch.name, SUM(f.gross_revenue) AS revenue, SUM(f.orders_count) AS orders
              FROM fact_sales_daily f
@@ -136,12 +137,15 @@ class StatsRepository extends Repository {
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Sales grouped by category over [from, to], optionally limited to one channel. */
-    public function getSalesByCategory(int $orgId, string $from, string $to, ?string $channelCode = null): array
+    /** Sales grouped by category over [from, to], optionally limited to one channel/country. */
+    public function getSalesByCategory(int $orgId, string $from, string $to, ?string $channelCode = null, ?int $countryId = null): array
     {
-        // fact_category_daily has no channel dimension, so when a channel filter
-        // is applied we aggregate from the raw orders/items instead.
-        if ($channelCode) {
+        // fact_category_daily has neither a channel nor a country dimension, so
+        // when either filter is applied we aggregate from the raw orders/items.
+        if ($channelCode || $countryId) {
+            $cond = ''; $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
+            if ($channelCode) { $cond .= ' AND ch.code = :code'; $p['code'] = $channelCode; }
+            if ($countryId)   { $cond .= ' AND o.country_id = :country'; $p['country'] = $countryId; }
             $query = $this->database->prepare(
                 "SELECT cat.name, SUM(oi.line_total) AS revenue
                  FROM orders o
@@ -149,10 +153,10 @@ class StatsRepository extends Repository {
                  JOIN categories cat ON cat.id = oi.category_id
                  JOIN channels ch ON ch.id = o.channel_id
                  WHERE o.organization_id = :org AND o.ordered_at::date BETWEEN :from AND :to
-                   AND o.status NOT IN ('cancelled','refunded') AND ch.code = :code
+                   AND o.status NOT IN ('cancelled','refunded') $cond
                  GROUP BY cat.name ORDER BY revenue DESC"
             );
-            $query->execute(['org' => $orgId, 'from' => $from, 'to' => $to, 'code' => $channelCode]);
+            $query->execute($p);
             return $query->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -168,17 +172,20 @@ class StatsRepository extends Repository {
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Daily revenue series for the trend chart, optionally limited to one channel. */
-    public function getRevenueTrend(int $orgId, string $from, string $to, ?string $channelCode = null): array
+    /** Daily revenue series for the trend chart, optionally limited to one channel/country. */
+    public function getRevenueTrend(int $orgId, string $from, string $to, ?string $channelCode = null, ?int $countryId = null): array
     {
-        if ($channelCode) {
+        if ($channelCode || $countryId) {
+            $cond = ''; $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
+            if ($channelCode) { $cond .= ' AND ch.code = :code'; $p['code'] = $channelCode; }
+            if ($countryId)   { $cond .= ' AND f.country_id = :country'; $p['country'] = $countryId; }
             $query = $this->database->prepare(
                 "SELECT f.stat_date::text AS day, SUM(f.gross_revenue) AS revenue
                  FROM fact_sales_daily f JOIN channels ch ON ch.id = f.channel_id
-                 WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to AND ch.code = :code
+                 WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to $cond
                  GROUP BY f.stat_date ORDER BY f.stat_date"
             );
-            $query->execute(['org' => $orgId, 'from' => $from, 'to' => $to, 'code' => $channelCode]);
+            $query->execute($p);
             return $query->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -203,8 +210,8 @@ class StatsRepository extends Repository {
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Latest individual sales, optionally by channel code and date window. */
-    public function getRecentSales(int $orgId, int $limit = 8, ?string $channelCode = null, ?string $from = null, ?string $to = null): array
+    /** Latest individual sales, optionally by channel code, country id and date window. */
+    public function getRecentSales(int $orgId, int $limit = 8, ?string $channelCode = null, ?string $from = null, ?string $to = null, ?int $countryId = null): array
     {
         $limit  = max(1, min(50, $limit)); // clamp; inlined (PDO can't bind LIMIT well)
         $params = ['org' => $orgId];
@@ -212,6 +219,10 @@ class StatsRepository extends Repository {
         if ($channelCode !== null && $channelCode !== '') {
             $where .= ' AND ch.code = :code';
             $params['code'] = $channelCode;
+        }
+        if ($countryId) {
+            $where .= ' AND o.country_id = :country';
+            $params['country'] = $countryId;
         }
         if ($from !== null && $to !== null) {
             $where .= ' AND o.ordered_at::date BETWEEN :from AND :to';
@@ -234,31 +245,47 @@ class StatsRepository extends Repository {
 
     /* ===================== SALES PAGE ===================== */
 
-    /** Aggregate totals over a window, optionally limited to one channel. */
-    public function getRangeTotals(int $orgId, string $from, string $to, ?string $channelCode = null): array
+    /** Channels are filtered by code; countries by id. Sessions are only
+     *  channel-scoped (traffic has no country dimension), so when a country
+     *  filter is applied the conversion rate is an approximation. */
+    public function getRangeTotals(int $orgId, string $from, string $to, ?string $channelCode = null, ?int $countryId = null): array
     {
-        $cond = ''; $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
-        if ($channelCode) { $cond = ' AND ch.code = :code'; $p['code'] = $channelCode; }
+        $p = ['org' => $orgId, 'from' => $from, 'to' => $to];
+        $chanCond = ''; if ($channelCode) { $chanCond = ' AND ch.code = :code'; $p['code'] = $channelCode; }
+        $factCond = $chanCond; if ($countryId) { $factCond .= ' AND f.country_id = :country'; $p['country'] = $countryId; }
 
         $q = $this->database->prepare(
             "SELECT COALESCE(SUM(f.gross_revenue),0) AS revenue,
                     COALESCE(SUM(f.orders_count),0) AS orders,
                     COALESCE(SUM(f.units_sold),0)   AS units
              FROM fact_sales_daily f JOIN channels ch ON ch.id = f.channel_id
-             WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to $cond"
+             WHERE f.organization_id = :org AND f.stat_date BETWEEN :from AND :to $factCond"
         );
         $q->execute($p);
         $row = $q->fetch(PDO::FETCH_ASSOC) ?: ['revenue' => 0, 'orders' => 0, 'units' => 0];
 
+        $sp = ['org' => $orgId, 'from' => $from, 'to' => $to]; if ($channelCode) { $sp['code'] = $channelCode; }
         $s = $this->database->prepare(
             "SELECT COALESCE(SUM(t.sessions),0) FROM traffic_daily t JOIN channels ch ON ch.id = t.channel_id
-             WHERE t.organization_id = :org AND t.stat_date BETWEEN :from AND :to $cond"
+             WHERE t.organization_id = :org AND t.stat_date BETWEEN :from AND :to $chanCond"
         );
-        $s->execute($p);
+        $s->execute($sp);
         $sessions = (int)$s->fetchColumn();
 
         $row['conversion'] = $sessions > 0 ? round(100 * (float)$row['orders'] / $sessions, 2) : 0.0;
         return $row;
+    }
+
+    /** Countries that have sales for a tenant (for the country filter dropdown). */
+    public function getCountriesForOrg(int $orgId): array
+    {
+        $q = $this->database->prepare(
+            "SELECT DISTINCT co.id, co.name FROM fact_sales_daily f
+             JOIN countries co ON co.id = f.country_id
+             WHERE f.organization_id = :org ORDER BY co.name"
+        );
+        $q->execute(['org' => $orgId]);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /* ===================== MARKETING PAGE ===================== */

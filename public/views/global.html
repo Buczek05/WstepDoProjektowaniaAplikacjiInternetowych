@@ -3,6 +3,8 @@
 $summary = $summary ?? ['revenue' => 0, 'orders' => 0, 'countries' => 0];
 $regions = $regions ?? [];
 $days    = $days    ?? 30;
+$regLabels = array_map(fn($r) => $r->countryName, $regions);
+$regValues = array_map(fn($r) => $r->revenue->getAmount(), $regions);
 ?>
 <!doctype html>
 <html lang="en">
@@ -44,6 +46,8 @@ $days    = $days    ?? 30;
           <small class="nx-target">Across all regions</small>
         </article>
       </section>
+
+      <?= nx_doughnut($regLabels, $regValues, 'currency', 'Revenue by Country', 'Share of revenue across markets') ?>
 
       <section class="nx-panel">
         <div class="nx-panel-head"><h2>Country &amp; Channel Performance</h2><small>Deep dive into multi-tenant channel metrics per region</small></div>

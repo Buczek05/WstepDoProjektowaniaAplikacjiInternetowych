@@ -10,13 +10,45 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   var accent = '#6d8bff', grid = 'rgba(255,255,255,0.06)', muted = '#8a93a8';
+  var palette = ['#6d8bff', '#3ad6a8', '#f4c152', '#ff6b6b', '#9b6dff', '#58b4ff', '#ff8f6b', '#5ad1c4', '#c0d16d', '#e06ec0'];
 
   document.querySelectorAll('canvas.nx-canvas').forEach(function (cv) {
     var cfg;
     try { cfg = JSON.parse(cv.dataset.chart); } catch (e) { return; }
     var f = fmt[cfg.unit] || fmt.count;
-    var isBar = cfg.type === 'bar';
 
+    // Doughnut / pie
+    if (cfg.type === 'doughnut' || cfg.type === 'pie') {
+      new Chart(cv, {
+        type: cfg.type,
+        data: {
+          labels: cfg.labels,
+          datasets: [{ data: cfg.values, backgroundColor: palette, borderColor: '#0b0f1a', borderWidth: 2 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: cfg.type === 'doughnut' ? '62%' : 0,
+          plugins: {
+            legend: { position: 'right', labels: { color: '#e8ecf5', boxWidth: 12, padding: 10, font: { size: 12 } } },
+            tooltip: {
+              backgroundColor: '#161d31', borderColor: '#232c44', borderWidth: 1,
+              titleColor: '#e8ecf5', bodyColor: '#e8ecf5', padding: 10,
+              callbacks: {
+                label: function (ctx) {
+                  var total = ctx.dataset.data.reduce(function (a, b) { return a + Number(b); }, 0);
+                  var pct = total > 0 ? Math.round(100 * ctx.parsed / total) : 0;
+                  return ctx.label + ': ' + f(ctx.parsed) + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+      return;
+    }
+
+    var isBar = cfg.type === 'bar';
     new Chart(cv, {
       type: cfg.type || 'line',
       data: {
