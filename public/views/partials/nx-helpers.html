@@ -1,0 +1,28 @@
+<?php
+// Shared view formatting helpers (guarded against repeated includes).
+if (!function_exists('nx_fmt_value')) {
+    function nx_fmt_value($v, $unit) {
+        $v = (float)$v;
+        return match ($unit) {
+            'currency' => '$' . number_format($v, 0),
+            'percent'  => number_format($v, 2) . '%',
+            default    => number_format($v, 0),
+        };
+    }
+    function nx_money($v)       { return '$' . number_format((float)$v, 0); }
+    function nx_money2($v)      { return '$' . number_format((float)$v, 2); }
+    function nx_pct($num, $den) { return $den > 0 ? (int)round(100 * $num / $den) : 0; }
+    function nx_status_class($s) {
+        return 'badge badge--' . preg_replace('/[^a-z]/', '', strtolower((string)$s));
+    }
+    function nx_status_label($s) { return ucwords(str_replace('_', ' ', (string)$s)); }
+    function nx_delta_badge($delta, $suffix = '%') {
+        if ($delta === null) return '';
+        $up  = (float)$delta >= 0;
+        $cls = $up ? 'up' : 'down';
+        $ico = $up ? 'fa-caret-up' : 'fa-caret-down';
+        $val = ($up ? '+' : '') . number_format((float)$delta, 1) . $suffix;
+        return '<span class="nx-delta ' . $cls . '"><i class="fa-solid ' . $ico . '"></i> '
+             . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+}

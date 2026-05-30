@@ -1,74 +1,156 @@
-.dashboard-page {
-  background: var(--color-bg);
-}
-
-.dashboard-shell {
-  padding: 2rem 0 3rem;
-}
-
-.dashboard-hero {
-  display: grid;
-  gap: 0.65rem;
-  padding: 2rem 0;
-}
-
-.dashboard-hero h1 {
+/* ===== NexusOS dashboard — self-contained dark theme ===== */
+.nx {
+  --bg: #0b0f1a;
+  --panel: #121829;
+  --panel-2: #161d31;
+  --border: #232c44;
+  --text: #e8ecf5;
+  --muted: #8a93a8;
+  --accent: #6d8bff;
+  --accent-2: #3ad6a8;
+  --danger: #ff6b6b;
   margin: 0;
-  color: var(--color-text);
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  line-height: 1;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.dashboard-hero p {
-  max-width: 620px;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 1.05rem;
-  line-height: 1.6;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.dashboard-card {
-  display: grid;
-  gap: 0.75rem;
-  min-height: 210px;
-  padding: 1.4rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  box-shadow: 0 12px 30px rgba(21, 32, 51, 0.08);
-}
-
-.card-icon {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
+/* Top bar */
+.nx-topbar {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: var(--color-surface-muted);
-  color: var(--color-primary);
+  gap: 1.5rem;
+  padding: 0.9rem 1.6rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0e1424, #0b0f1a);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
-
-.dashboard-card h2 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 1.2rem;
+.nx-brand { display: flex; align-items: center; gap: 0.7rem; }
+.nx-logo {
+  display: grid; place-items: center;
+  width: 38px; height: 38px; border-radius: 10px;
+  font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, var(--accent), #9b6dff);
 }
+.nx-brand strong { display: block; font-size: 1rem; letter-spacing: .3px; }
+.nx-brand strong span { color: var(--accent); }
+.nx-brand small { color: var(--muted); font-size: .72rem; }
 
-.dashboard-card p {
-  margin: 0;
-  color: var(--color-muted);
-  line-height: 1.55;
+.nx-workspace { display: flex; align-items: center; gap: .6rem; }
+.nx-ws-name { font-weight: 700; }
+.nx-ws-plan {
+  font-size: .72rem; padding: .2rem .55rem; border-radius: 999px;
+  background: rgba(109,139,255,.15); color: var(--accent); border: 1px solid rgba(109,139,255,.35);
 }
+.nx-ws-count { font-size: .75rem; color: var(--muted); }
 
-@media screen and (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
+/* Primary nav */
+.nx-nav { display: flex; gap: .3rem; margin-left: 1rem; flex-wrap: wrap; }
+.nx-nav a {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .5rem .8rem; border-radius: 9px; text-decoration: none;
+  color: var(--muted); font-size: .85rem; font-weight: 600;
+}
+.nx-nav a:hover { color: var(--text); background: var(--panel-2); }
+.nx-nav a.is-active { color: var(--text); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--border); }
+.nx-nav a.is-active i { color: var(--accent); }
+
+.nx-user { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+.nx-pill { font-size: .75rem; color: var(--muted); padding: .35rem .7rem; border: 1px solid var(--border); border-radius: 999px; }
+.nx-email { font-size: .82rem; color: var(--muted); }
+.nx-logout {
+  font-size: .82rem; color: var(--text); text-decoration: none;
+  padding: .45rem .8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2);
+}
+.nx-logout:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Shell */
+.nx-shell { max-width: 1200px; margin: 0 auto; padding: 1.6rem; display: grid; gap: 1.2rem; }
+
+.nx-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.nx-hero .eyebrow { color: var(--accent); font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; }
+.nx-hero h1 { margin: .2rem 0 0; font-size: clamp(1.6rem, 3vw, 2.4rem); }
+.nx-hero-date { color: var(--muted); margin: 0; }
+
+/* KPI cards */
+.nx-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.nx-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem;
+  display: grid; gap: .55rem;
+}
+.nx-card-top { display: flex; align-items: center; gap: .6rem; }
+.nx-card-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px;
+  background: var(--panel-2); color: var(--accent);
+}
+.nx-card-label { color: var(--muted); font-size: .85rem; }
+.nx-delta { margin-left: auto; font-size: .78rem; font-weight: 700; padding: .15rem .45rem; border-radius: 999px; }
+.nx-delta.up { color: var(--accent-2); background: rgba(58,214,168,.12); }
+.nx-delta.down { color: var(--danger); background: rgba(255,107,107,.12); }
+.nx-card-value { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
+.nx-target { color: var(--muted); font-size: .78rem; }
+
+/* Progress bars (KPI + lists) */
+.nx-progress { height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.nx-progress > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+/* Panels */
+.nx-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem; }
+.nx-panel-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+.nx-panel-head h2 { margin: 0; font-size: 1.05rem; }
+.nx-panel-head small { color: var(--muted); }
+.nx-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+
+/* Trend bar chart */
+.nx-bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; }
+.nx-bar { flex: 1; min-width: 4px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--accent), #2a3a7a); transition: filter .15s; }
+.nx-bar:hover { filter: brightness(1.4); }
+
+/* Lists */
+.nx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+.nx-list-row { display: flex; justify-content: space-between; margin-bottom: .35rem; font-size: .9rem; }
+.nx-muted { color: var(--muted); }
+
+/* Table */
+.nx-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.nx-table th { text-align: left; color: var(--muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--border); font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+.nx-table td { padding: .7rem .6rem; border-bottom: 1px solid var(--border); }
+.nx-table tr:last-child td { border-bottom: none; }
+.nx-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+.nx-amount { font-weight: 700; }
+
+/* Status badges */
+.badge { font-size: .72rem; font-weight: 700; padding: .2rem .55rem; border-radius: 999px; text-transform: capitalize; }
+.badge--delivered { color: var(--accent-2); background: rgba(58,214,168,.12); }
+.badge--processing { color: var(--accent); background: rgba(109,139,255,.12); }
+.badge--pending { color: #f4c152; background: rgba(244,193,82,.12); }
+.badge--shipped { color: #58b4ff; background: rgba(88,180,255,.12); }
+.badge--cancelled, .badge--refunded { color: var(--danger); background: rgba(255,107,107,.12); }
+
+/* Region cards (Global) */
+.nx-regions { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.nx-region { border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem; background: var(--panel-2); }
+.nx-region-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.nx-region-head strong { display: block; font-size: 1.05rem; }
+.nx-region-head small { color: var(--muted); font-size: .75rem; }
+.nx-region-rev { font-size: 1.6rem; font-weight: 800; margin: .7rem 0; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.nx-region-meta { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.nx-region-meta li { display: flex; justify-content: space-between; font-size: .85rem; }
+.nx-region-meta span { color: var(--muted); }
+
+/* Security checklist */
+.nx-check { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.nx-check li { display: flex; align-items: center; gap: .6rem; font-size: .9rem; }
+.nx-check i { color: var(--accent-2); }
+
+/* Empty state */
+.nx-empty { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+.nx-empty i { font-size: 2.5rem; color: var(--accent); }
+.nx-empty h2 { margin: .8rem 0 .3rem; color: var(--text); }
+
+@media (max-width: 900px) {
+  .nx-kpis, .nx-two-col { grid-template-columns: 1fr; }
+  .nx-user .nx-email { display: none; }
 }

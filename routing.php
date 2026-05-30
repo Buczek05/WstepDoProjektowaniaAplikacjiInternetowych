@@ -2,6 +2,10 @@
 
 require_once 'src/controllers/SecurityController.php';
 require_once 'src/controllers/DashboardController.php';
+require_once 'src/controllers/SalesController.php';
+require_once 'src/controllers/MarketingController.php';
+require_once 'src/controllers/GlobalController.php';
+require_once 'src/controllers/SettingsController.php';
 require_once 'src/Middleware/checkRequestAllowed.php';
 
 class Routing {
@@ -26,6 +30,22 @@ class Routing {
         ],
         'dashboard' => [
             'controller' => 'DashboardController',
+            'action'     => 'index',
+        ],
+        'sales' => [
+            'controller' => 'SalesController',
+            'action'     => 'index',
+        ],
+        'marketing' => [
+            'controller' => 'MarketingController',
+            'action'     => 'index',
+        ],
+        'global' => [
+            'controller' => 'GlobalController',
+            'action'     => 'index',
+        ],
+        'settings' => [
+            'controller' => 'SettingsController',
             'action'     => 'index',
         ],
     ];

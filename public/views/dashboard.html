@@ -1,38 +1,164 @@
+<?php include __DIR__ . '/partials/nx-helpers.html'; ?>
+<?php
+$kpis          = $kpis          ?? [];
+$salesChannel  = $salesChannel  ?? [];
+$salesCategory = $salesCategory ?? [];
+$revenueTrend  = $revenueTrend  ?? [];
+$recentSales   = $recentSales   ?? [];
+
+$kpiCards = [
+    ['key' => 'total_revenue',   'label' => 'Total Revenue',   'icon' => 'fa-sack-dollar'],
+    ['key' => 'total_orders',    'label' => 'Total Orders',    'icon' => 'fa-cart-shopping'],
+    ['key' => 'conversion_rate', 'label' => 'Conversion Rate', 'icon' => 'fa-arrow-trend-up'],
+];
+
+$catTotal   = array_sum(array_map(fn($r) => (float)$r['revenue'], $salesCategory));
+$chanTotal  = array_sum(array_map(fn($r) => (float)$r['revenue'], $salesChannel));
+$trendMax   = $revenueTrend ? max(array_map(fn($r) => (float)$r['revenue'], $revenueTrend)) : 0;
+?>
 <!doctype html>
 <html lang="en">
   <head>
     <?php include __DIR__ . '/partials/head.html'; ?>
     <link rel="stylesheet" type="text/css" href="public/styles/dashboard.css" />
-    <title>Dashboard</title>
+    <title><?= htmlspecialchars($title ?? 'Dashboard', ENT_QUOTES, 'UTF-8') ?></title>
   </head>
-  <body class="dashboard-page">
-    <?php include __DIR__ . '/partials/nav.html'; ?>
-    <main class="dashboard-shell container">
-      <section class="dashboard-hero">
-        <span class="eyebrow">Workspace</span>
-        <h1>Dashboard</h1>
-        <p>Manage your profile and projects from one clean view.</p>
+  <body class="nx">
+    <?php include __DIR__ . '/partials/nx-header.html'; ?>
+
+    <main class="nx-shell">
+      <section class="nx-hero">
+        <div>
+          <span class="eyebrow">Dashboard</span>
+          <h1>Sales performance</h1>
+        </div>
+        <p class="nx-hero-date">
+          <?php if (!empty($statDate)): ?>
+            Overview for <?= htmlspecialchars(date('M j, Y', strtotime($statDate)), ENT_QUOTES, 'UTF-8') ?>
+          <?php else: ?>
+            No processed data yet
+          <?php endif; ?>
+        </p>
       </section>
 
-      <section class="dashboard-grid">
-        <article class="dashboard-card">
-          <span class="card-icon"><i class="fa-solid fa-user"></i></span>
-          <h2>Profile</h2>
-          <p>Your account is ready. Add more profile details when the next feature lands.</p>
-        </article>
+      <?php if (empty($statDate)): ?>
+        <section class="nx-empty">
+          <i class="fa-solid fa-database"></i>
+          <h2>No statistics available</h2>
+          <p>The daily batch has not produced any facts for this workspace yet.</p>
+        </section>
+      <?php else: ?>
 
-        <article class="dashboard-card">
-          <span class="card-icon"><i class="fa-solid fa-diagram-project"></i></span>
-          <h2>Projects</h2>
-          <p>Project tools can live here, with quick access from the navigation.</p>
+      <!-- KPI cards -->
+      <section class="nx-kpis">
+        <?php foreach ($kpiCards as $card): $k = $kpis[$card['key']] ?? null; ?>
+        <article class="nx-card">
+          <div class="nx-card-top">
+            <span class="nx-card-icon"><i class="fa-solid <?= $card['icon'] ?>"></i></span>
+            <span class="nx-card-label"><?= htmlspecialchars($card['label'], ENT_QUOTES, 'UTF-8') ?></span>
+            <?php if ($k && $k['delta_pct'] !== null): $up = (float)$k['delta_pct'] >= 0; ?>
+              <span class="nx-delta <?= $up ? 'up' : 'down' ?>">
+                <i class="fa-solid <?= $up ? 'fa-caret-up' : 'fa-caret-down' ?>"></i>
+                <?= ($up ? '+' : '') . number_format((float)$k['delta_pct'], 1) ?><?= $k['unit'] === 'percent' ? 'pp' : '%' ?>
+              </span>
+            <?php endif; ?>
+          </div>
+          <div class="nx-card-value">
+            <?= $k ? htmlspecialchars(nx_fmt_value($k['metric_value'], $k['unit']), ENT_QUOTES, 'UTF-8') : '—' ?>
+          </div>
+          <?php if ($k && $k['target_value'] !== null): $prog = nx_pct((float)$k['metric_value'], (float)$k['target_value']); ?>
+            <div class="nx-progress"><span style="width: <?= min(100, $prog) ?>%"></span></div>
+            <small class="nx-target">Target: <?= htmlspecialchars(nx_fmt_value($k['target_value'], $k['unit']), ENT_QUOTES, 'UTF-8') ?></small>
+          <?php endif; ?>
         </article>
-
-        <article class="dashboard-card">
-          <span class="card-icon"><i class="fa-solid fa-shield-halved"></i></span>
-          <h2>Security</h2>
-          <p>Passwords are stored using hashing, and login checks verify credentials.</p>
-        </article>
+        <?php endforeach; ?>
       </section>
+
+      <!-- Revenue trend -->
+      <section class="nx-panel nx-trend">
+        <div class="nx-panel-head">
+          <h2>Revenue trend</h2>
+          <small>Daily revenue over the last 30 days</small>
+        </div>
+        <div class="nx-bars">
+          <?php foreach ($revenueTrend as $pt): $h = $trendMax > 0 ? max(3, round(100 * (float)$pt['revenue'] / $trendMax)) : 3; ?>
+            <span class="nx-bar" style="height: <?= $h ?>%"
+                  title="<?= htmlspecialchars(date('M j', strtotime($pt['day'])) . ': ' . nx_money($pt['revenue']), ENT_QUOTES, 'UTF-8') ?>"></span>
+          <?php endforeach; ?>
+        </div>
+      </section>
+
+      <div class="nx-two-col">
+        <!-- Sales by category -->
+        <section class="nx-panel">
+          <div class="nx-panel-head">
+            <h2>Sales by Category</h2>
+            <small>Last 30 days</small>
+          </div>
+          <ul class="nx-list">
+            <?php foreach ($salesCategory as $row): $p = nx_pct((float)$row['revenue'], $catTotal); ?>
+            <li>
+              <div class="nx-list-row">
+                <span><?= htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                <strong><?= htmlspecialchars(nx_money($row['revenue']), ENT_QUOTES, 'UTF-8') ?></strong>
+              </div>
+              <div class="nx-progress"><span style="width: <?= $p ?>%"></span></div>
+            </li>
+            <?php endforeach; ?>
+            <?php if (!$salesCategory): ?><li class="nx-muted">No data</li><?php endif; ?>
+          </ul>
+        </section>
+
+        <!-- Sales by channel -->
+        <section class="nx-panel">
+          <div class="nx-panel-head">
+            <h2>Sales by Channel</h2>
+            <small>Last 30 days</small>
+          </div>
+          <ul class="nx-list">
+            <?php foreach ($salesChannel as $row): $p = nx_pct((float)$row['revenue'], $chanTotal); ?>
+            <li>
+              <div class="nx-list-row">
+                <span><?= htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                <strong><?= htmlspecialchars(nx_money($row['revenue']), ENT_QUOTES, 'UTF-8') ?></strong>
+              </div>
+              <div class="nx-progress"><span style="width: <?= $p ?>%"></span></div>
+            </li>
+            <?php endforeach; ?>
+            <?php if (!$salesChannel): ?><li class="nx-muted">No data</li><?php endif; ?>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Recent sales -->
+      <section class="nx-panel">
+        <div class="nx-panel-head">
+          <h2>Recent Sales</h2>
+          <small>Transaction history across all channels</small>
+        </div>
+        <table class="nx-table">
+          <thead>
+            <tr><th>Order ID</th><th>Customer</th><th>Channel</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($recentSales as $sale): ?>
+            <tr>
+              <td class="nx-mono"><?= htmlspecialchars($sale['order_code'], ENT_QUOTES, 'UTF-8') ?></td>
+              <td><?= htmlspecialchars((string)($sale['customer'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+              <td><?= htmlspecialchars($sale['channel'], ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="nx-amount">$<?= htmlspecialchars(number_format((float)$sale['total_amount'], 2), ENT_QUOTES, 'UTF-8') ?></td>
+              <td><span class="<?= htmlspecialchars(nx_status_class($sale['status']), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(ucfirst($sale['status']), ENT_QUOTES, 'UTF-8') ?></span></td>
+              <td><?= htmlspecialchars(date('M j, Y', strtotime($sale['ordered_at'])), ENT_QUOTES, 'UTF-8') ?></td>
+            </tr>
+            <?php endforeach; ?>
+            <?php if (!$recentSales): ?>
+            <tr><td colspan="6" class="nx-muted">No sales yet</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </section>
+
+      <?php endif; ?>
     </main>
   </body>
 </html>

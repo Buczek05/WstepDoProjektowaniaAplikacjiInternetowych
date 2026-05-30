@@ -1,0 +1,89 @@
+<?php include __DIR__ . '/partials/nx-helpers.html'; ?>
+<?php
+$cards      = $cards      ?? [];
+$byPlatform = $byPlatform ?? [];
+$trend      = $trend      ?? [];
+$platformLabel = [
+    'amazon_ads' => ['Amazon Ads',  'fa-brands fa-amazon'],
+    'google_ads' => ['Google Ads',  'fa-brands fa-google'],
+    'meta'       => ['Meta Ads',    'fa-brands fa-meta'],
+];
+$roiMax = $trend ? max(array_map(fn($r) => (float)$r['roi'], $trend)) : 0;
+$totalSpend = array_sum(array_map(fn($r) => (float)$r['spend'], $byPlatform));
+$totalRev   = array_sum(array_map(fn($r) => (float)$r['revenue'], $byPlatform));
+?>
+<!doctype html>
+<html lang="en">
+  <head>
+    <?php include __DIR__ . '/partials/head.html'; ?>
+    <link rel="stylesheet" type="text/css" href="public/styles/dashboard.css" />
+    <title><?= htmlspecialchars($title ?? 'Marketing', ENT_QUOTES, 'UTF-8') ?></title>
+  </head>
+  <body class="nx">
+    <?php include __DIR__ . '/partials/nx-header.html'; ?>
+
+    <main class="nx-shell">
+      <section class="nx-hero">
+        <div><span class="eyebrow">Marketing</span><h1>Marketing Analytics</h1></div>
+        <p class="nx-hero-date"><?= !empty($statDate) ? 'Marketplace performance for ' . htmlspecialchars(date('M j, Y', strtotime($statDate)), ENT_QUOTES, 'UTF-8') : 'No processed data yet' ?></p>
+      </section>
+
+      <?php if (empty($statDate)): ?>
+        <section class="nx-empty"><i class="fa-solid fa-database"></i><h2>No statistics available</h2></section>
+      <?php else: ?>
+
+      <!-- Campaign cards per platform (latest day) -->
+      <section class="nx-kpis">
+        <?php foreach ($cards as $c): [$label, $icon] = $platformLabel[$c['platform']] ?? [ucfirst($c['platform']), 'fa-solid fa-bullhorn']; ?>
+        <article class="nx-card">
+          <div class="nx-card-top">
+            <span class="nx-card-icon"><i class="<?= strpos($icon, 'fa-brands') === 0 ? $icon : 'fa-solid ' . $icon ?>"></i></span>
+            <span class="nx-card-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+            <?php if ($c['roi'] !== null): ?><span class="nx-delta up"><?= number_format((float)$c['roi'], 2) ?>x ROI</span><?php endif; ?>
+          </div>
+          <div class="nx-card-value"><?= htmlspecialchars(nx_money($c['spend']), ENT_QUOTES, 'UTF-8') ?></div>
+          <?php if ($c['budget_util'] !== null): ?>
+            <div class="nx-progress"><span style="width: <?= min(100, (int)$c['budget_util']) ?>%"></span></div>
+            <small class="nx-target">Budget utilization: <?= (int)$c['budget_util'] ?>% · <?= number_format((float)$c['conversions']) ?> conversions</small>
+          <?php else: ?>
+            <small class="nx-target"><?= number_format((float)$c['conversions']) ?> conversions</small>
+          <?php endif; ?>
+        </article>
+        <?php endforeach; ?>
+        <?php if (!$cards): ?><article class="nx-card"><div class="nx-card-value">—</div><small class="nx-target">No ad spend for this day</small></article><?php endif; ?>
+      </section>
+
+      <!-- ROI trend -->
+      <section class="nx-panel nx-trend">
+        <div class="nx-panel-head"><h2>ROI Trend</h2><small>Aggregated daily ROI across marketplaces (last 30 days)</small></div>
+        <div class="nx-bars">
+          <?php foreach ($trend as $pt): $h = $roiMax > 0 ? max(3, round(100 * (float)$pt['roi'] / $roiMax)) : 3; ?>
+            <span class="nx-bar" style="height: <?= $h ?>%" title="<?= htmlspecialchars(date('M j', strtotime($pt['day'])) . ': ' . number_format((float)$pt['roi'], 2) . 'x', ENT_QUOTES, 'UTF-8') ?>"></span>
+          <?php endforeach; ?>
+        </div>
+      </section>
+
+      <!-- Per-platform breakdown over the window -->
+      <section class="nx-panel">
+        <div class="nx-panel-head"><h2>Marketplace Campaign Performance</h2><small>Last 30 days · total spend <?= htmlspecialchars(nx_money($totalSpend), ENT_QUOTES, 'UTF-8') ?> · revenue <?= htmlspecialchars(nx_money($totalRev), ENT_QUOTES, 'UTF-8') ?></small></div>
+        <table class="nx-table">
+          <thead><tr><th>Platform</th><th>Ad Spend</th><th>Attributed Revenue</th><th>ROI</th><th>Conversions</th></tr></thead>
+          <tbody>
+            <?php foreach ($byPlatform as $p): [$label] = $platformLabel[$p['platform']] ?? [ucfirst($p['platform'])]; ?>
+            <tr>
+              <td><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="nx-amount"><?= htmlspecialchars(nx_money($p['spend']), ENT_QUOTES, 'UTF-8') ?></td>
+              <td><?= htmlspecialchars(nx_money($p['revenue']), ENT_QUOTES, 'UTF-8') ?></td>
+              <td><span class="badge badge--delivered"><?= number_format((float)$p['roi'], 2) ?>x</span></td>
+              <td><?= number_format((float)$p['conversions']) ?></td>
+            </tr>
+            <?php endforeach; ?>
+            <?php if (!$byPlatform): ?><tr><td colspan="5" class="nx-muted">No data</td></tr><?php endif; ?>
+          </tbody>
+        </table>
+      </section>
+
+      <?php endif; ?>
+    </main>
+  </body>
+</html>
