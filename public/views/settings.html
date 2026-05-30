@@ -13,7 +13,7 @@ $periodLabel = [7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 90 days', 
 <html lang="en">
   <head>
     <?php include __DIR__ . '/partials/head.html'; ?>
-    <link rel="stylesheet" type="text/css" href="public/styles/dashboard.css" />
+    <link rel="stylesheet" type="text/css" href="<?= nx_asset('public/styles/dashboard.css') ?>" />
     <title><?= $E($title ?? 'Account') ?></title>
   </head>
   <body class="nx">

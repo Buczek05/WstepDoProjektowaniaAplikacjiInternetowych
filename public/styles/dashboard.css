@@ -93,7 +93,7 @@
 .nx-ws-count { font-size: .75rem; color: var(--muted); }
 
 /* Primary nav */
-.nx-nav { display: flex; gap: .3rem; margin-left: 1rem; flex-wrap: wrap; }
+.nx-nav { display: flex; gap: .3rem; margin-left: 1rem; flex-wrap: wrap; background: transparent; }
 .nx-nav a {
   display: inline-flex; align-items: center; gap: .45rem;
   padding: .5rem .8rem; border-radius: 9px; text-decoration: none;

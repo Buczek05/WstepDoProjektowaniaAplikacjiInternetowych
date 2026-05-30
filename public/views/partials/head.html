@@ -1,6 +1,13 @@
+<?php
+// Cache-busting: append the file's mtime so browsers always fetch fresh assets.
+if (!function_exists('nx_asset')) {
+    function nx_asset(string $rel): string {
+        $abs = __DIR__ . '/../../../' . $rel;
+        return $rel . '?v=' . (is_file($abs) ? filemtime($abs) : '1');
+    }
+}
+?>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script>document.documentElement.setAttribute('data-theme', <?= json_encode($_SESSION['theme'] ?? 'dark') ?>);</script>
-<link rel="stylesheet" type="text/css" href="public/styles/main.css" />
-<link rel="stylesheet" type="text/css" href="public/styles/global.css" />
 <script src="https://kit.fontawesome.com/8fd9367667.js" crossorigin="anonymous"></script>
