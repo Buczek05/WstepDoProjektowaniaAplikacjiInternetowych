@@ -312,4 +312,20 @@ class StatsRepository extends Repository {
         $q->execute(['uid' => $userId]);
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Switch the user's active workspace — only succeeds if they are actually a
+     * member of the target organization (prevents switching into a foreign org).
+     */
+    public function switchWorkspace(int $userId, int $orgId): bool
+    {
+        $q = $this->database->prepare(
+            "UPDATE users SET organization_id = :org, updated_at = now()
+             WHERE id = :uid AND EXISTS (
+                SELECT 1 FROM organization_members m
+                WHERE m.user_id = :uid AND m.organization_id = :org)"
+        );
+        $q->execute(['org' => $orgId, 'uid' => $userId]);
+        return $q->rowCount() > 0;
+    }
 }

@@ -6,6 +6,7 @@ require_once 'src/controllers/SalesController.php';
 require_once 'src/controllers/MarketingController.php';
 require_once 'src/controllers/GlobalController.php';
 require_once 'src/controllers/SettingsController.php';
+require_once 'src/controllers/WorkspaceController.php';
 require_once 'src/Middleware/checkRequestAllowed.php';
 
 class Routing {
@@ -47,6 +48,10 @@ class Routing {
         'settings' => [
             'controller' => 'SettingsController',
             'action'     => 'index',
+        ],
+        'switch' => [
+            'controller' => 'WorkspaceController',
+            'action'     => 'switch',
         ],
     ];
 

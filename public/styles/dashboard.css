@@ -59,6 +59,34 @@
 
 .nx-user { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
 .nx-pill { font-size: .75rem; color: var(--muted); padding: .35rem .7rem; border: 1px solid var(--border); border-radius: 999px; }
+
+/* Workspace switcher (native <details> dropdown) */
+.nx-switch { position: relative; }
+.nx-switch > summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: .5rem;
+  padding: .4rem .7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2);
+}
+.nx-switch > summary::-webkit-details-marker { display: none; }
+.nx-switch > summary .fa-chevron-down { font-size: .7rem; color: var(--muted); transition: transform .15s; }
+.nx-switch[open] > summary .fa-chevron-down { transform: rotate(180deg); }
+.nx-switch-menu {
+  position: absolute; right: 0; top: calc(100% + .5rem); z-index: 30; min-width: 250px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: .5rem;
+  box-shadow: 0 18px 40px rgba(0,0,0,.45); max-height: 60vh; overflow-y: auto;
+}
+.nx-switch-title { margin: .2rem .5rem .5rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.nx-switch-form { margin: 0; }
+.nx-switch-item {
+  width: 100%; display: flex; align-items: center; gap: .6rem; text-align: left;
+  padding: .55rem .6rem; border: 0; border-radius: 8px; background: transparent; color: var(--text);
+  font-size: .88rem; cursor: pointer;
+}
+button.nx-switch-item:hover { background: var(--panel-2); }
+.nx-switch-item.is-active { color: var(--accent-2); cursor: default; }
+.nx-switch-item i { width: 14px; color: var(--muted); }
+.nx-switch-item.is-active i { color: var(--accent-2); }
+.nx-switch-item span { flex: 1; }
+.nx-switch-item small { color: var(--muted); font-size: .72rem; }
 .nx-email { font-size: .82rem; color: var(--muted); }
 .nx-logout {
   font-size: .82rem; color: var(--text); text-decoration: none;
