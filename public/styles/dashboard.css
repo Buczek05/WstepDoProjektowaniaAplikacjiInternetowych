@@ -17,9 +17,18 @@
 }
 .nx, .nx *, .nx *::before, .nx *::after { box-sizing: border-box; }
 
+/* Grid/flex children must be allowed to shrink below their content width,
+   otherwise a wide table forces the whole page wider (horizontal scroll). */
+.nx-shell > *, .nx-two-col > *, .nx-kpis > *, .nx-regions > *, .nx-panel { min-width: 0; }
+
 /* Tables scroll inside their own container, not the page */
 .nx-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .nx-table { min-width: 520px; }
+
+/* Company card head: only the name shrinks/truncates; pills & actions stay put */
+.nx-co-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-co-head > :not(.nx-co-name) { flex-shrink: 0; }
+.nx-plan-pill { white-space: nowrap; }
 
 /* Hamburger + off-canvas backdrop (mobile/tablet only) */
 .nx-burger { display: none; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: .5rem .65rem; font-size: 1rem; cursor: pointer; }
@@ -343,7 +352,6 @@ button.nx-switch-item:hover { background: var(--panel-2); }
   .nx-hero h1 { font-size: 1.55rem; }
   .nx-brand small { display: none; }
   .nx-card-value { font-size: 1.6rem; }
-  .nx-co-head { flex-wrap: wrap; }
   .nx-co-count { margin-left: auto; }
   .nx-search input { min-width: 0; width: 100%; }
   .nx-search { width: 100%; }
