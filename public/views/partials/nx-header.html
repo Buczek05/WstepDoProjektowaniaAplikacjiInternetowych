@@ -7,6 +7,8 @@ $nxCsrf   = $_SESSION['csrf_token'] ?? '';
 $nxWorkspaces = ($nxUserId && class_exists('StatsRepository'))
     ? StatsRepository::getInstance()->getMemberships($nxUserId)
     : [];
+require_once __DIR__ . '/../../../src/repositories/AdminRepository.php';
+$nxIsAdmin = $nxUserId ? AdminRepository::getInstance()->canAccessAdmin($nxUserId) : false;
 $navItems = [
     'dashboard' => ['Dashboard', 'fa-gauge-high'],
     'sales'     => ['Sales',     'fa-chart-line'],
@@ -14,6 +16,9 @@ $navItems = [
     'global'    => ['Global',    'fa-earth-americas'],
     'settings'  => ['Settings',  'fa-gear'],
 ];
+if ($nxIsAdmin) {
+    $navItems['admin'] = ['Admin', 'fa-user-shield'];
+}
 ?>
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script defer src="public/scripts/nx.js"></script>

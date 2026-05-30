@@ -7,6 +7,7 @@ require_once 'src/controllers/MarketingController.php';
 require_once 'src/controllers/GlobalController.php';
 require_once 'src/controllers/SettingsController.php';
 require_once 'src/controllers/WorkspaceController.php';
+require_once 'src/controllers/AdminController.php';
 require_once 'src/Middleware/checkRequestAllowed.php';
 
 class Routing {
@@ -52,6 +53,26 @@ class Routing {
         'switch' => [
             'controller' => 'WorkspaceController',
             'action'     => 'switch',
+        ],
+        'admin' => [
+            'controller' => 'AdminController',
+            'action'     => 'index',
+        ],
+        'admin/create-company' => [
+            'controller' => 'AdminController',
+            'action'     => 'createCompany',
+        ],
+        'admin/create-user' => [
+            'controller' => 'AdminController',
+            'action'     => 'createUser',
+        ],
+        'admin/add-member' => [
+            'controller' => 'AdminController',
+            'action'     => 'addMember',
+        ],
+        'admin/remove-member' => [
+            'controller' => 'AdminController',
+            'action'     => 'removeMember',
         ],
     ];
 
