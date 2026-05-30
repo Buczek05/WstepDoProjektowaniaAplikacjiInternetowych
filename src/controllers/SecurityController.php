@@ -75,10 +75,7 @@ class SecurityController extends AppController {
         $userRepository = UsersRepository::getInstance();
         $user           = $userRepository->getUserByEmail($email);
 
-        $passwordOk = false;
-        if ($user && isset($user['password'])) {
-            $passwordOk = password_verify($password, $user['password']);
-        }
+        $passwordOk = $user && $user->verifyPassword($password);
 
         if (!$user || !$passwordOk) {
             $_SESSION['login_attempts']     = $attempts + 1;
@@ -97,9 +94,9 @@ class SecurityController extends AppController {
 
         // Create session (B3: regenerate ID to prevent session fixation)
         session_regenerate_id(true);
-        $_SESSION['user_id']        = $user['id'];
-        $_SESSION['user_email']     = $user['email'];
-        $_SESSION['user_firstname'] = $user['username'] ?? null;
+        $_SESSION['user_id']        = $user->getId();
+        $_SESSION['user_email']     = $user->getEmail();
+        $_SESSION['user_firstname'] = $user->getUsername();
         $_SESSION['is_logged_in']   = true;
 
         $this->redirect('/dashboard');

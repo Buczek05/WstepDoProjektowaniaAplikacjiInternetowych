@@ -1,6 +1,7 @@
 <?php
 
 require_once 'Repository.php';
+require_once __DIR__ . '/../models/RegionStat.php';
 
 /**
  * Reads the already-processed sales statistics (the fact_* tables) for a given
@@ -293,7 +294,9 @@ class StatsRepository extends Repository {
         }
         unset($r);
         usort($regions, fn($a, $b) => (float)$b['revenue'] <=> (float)$a['revenue']);
-        return $regions;
+
+        // Map rows -> RegionStat DTOs (revenue wrapped in the Money value object).
+        return array_map(fn(array $r) => RegionStat::fromRow($r), $regions);
     }
 
     /* ===================== SETTINGS PAGE ===================== */
