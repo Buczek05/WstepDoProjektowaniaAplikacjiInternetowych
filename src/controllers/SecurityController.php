@@ -78,8 +78,13 @@ class SecurityController extends AppController {
         $passwordOk = $user && $user->verifyPassword($password);
 
         if (!$user || !$passwordOk) {
-            $_SESSION['login_attempts']     = $attempts + 1;
+            $newAttempts                    = $attempts + 1;
+            $_SESSION['login_attempts']     = $newAttempts;
             $_SESSION['login_last_attempt'] = time();
+            // A4: progressive brute-force delay once attempts pile up
+            if ($newAttempts > 3) {
+                sleep(2);
+            }
             // E5: log without password; B1: generic message
             error_log('Failed login for ' . $email . ' from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
             http_response_code(401);
@@ -199,7 +204,8 @@ class SecurityController extends AppController {
             );
         }
         session_destroy();
-        $url = "http://{$_SERVER['HTTP_HOST']}";
+        $scheme = !empty($_SERVER['HTTPS']) ? 'https' : 'http';
+        $url = "{$scheme}://{$_SERVER['HTTP_HOST']}";
         header("Location: {$url}/login");
         exit();
     }

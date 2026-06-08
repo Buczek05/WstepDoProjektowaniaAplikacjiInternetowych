@@ -4,7 +4,8 @@ services:
       context: .
       dockerfile: docker/nginx/Dockerfile
     ports:
-      - "8080:80"
+      - "8080:80"    # plain HTTP — 301-redirects to HTTPS (E1)
+      - "443:443"    # HTTPS (E1) — redirect target https://$host resolves here
     volumes:
       - .:/app/
     links:

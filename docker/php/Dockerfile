@@ -32,6 +32,10 @@ RUN apk add --no-cache --virtual .run-deps $RUN_DEPS
 
 RUN echo 'memory_limit = -1' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini;
 
+# Production PHP config (E4: hide errors/stack traces, log instead).
+# conf.d/*.ini files are auto-loaded by the official PHP base image.
+COPY ./docker/php/php.ini /usr/local/etc/php/conf.d/zz-nexus-prod.ini
+
 # Copy the application code
 COPY . /app
 

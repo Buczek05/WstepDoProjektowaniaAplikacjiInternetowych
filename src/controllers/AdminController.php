@@ -255,6 +255,9 @@ class AdminController extends AppController {
         if (!in_array($memberRole, self::ROLES, true)) {
             return $this->respond(false, 'Invalid role.');
         }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) {
+            return $this->respond(false, 'Valid email is required.');
+        }
         $target = $admin->findUserByEmail($email);
         if (!$target) {
             return $this->respond(false, 'No user with that email — create them first.');
@@ -334,7 +337,13 @@ class AdminController extends AppController {
     {
         $this->requireLogin();
         if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
-            $this->respond(false, 'Invalid CSRF token.');
+            // CSRF failure is a forbidden request (A5) — 403, not a 422 validation error.
+            if ($this->wantsJson()) {
+                $this->json(['ok' => false, 'msg' => 'Invalid CSRF token.'], 403);
+            }
+            http_response_code(403);
+            $_SESSION['admin_flash'] = ['type' => 'err', 'msg' => 'Invalid CSRF token.'];
+            $this->redirect('/admin');
         }
     }
 

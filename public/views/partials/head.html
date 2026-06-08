@@ -9,5 +9,5 @@ if (!function_exists('nx_asset')) {
 ?>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<script>document.documentElement.setAttribute('data-theme', <?= json_encode($_SESSION['theme'] ?? 'dark') ?>);</script>
+<script>document.documentElement.setAttribute('data-theme', <?= json_encode($_SESSION['theme'] ?? 'dark', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>);</script>
 <script src="https://kit.fontawesome.com/8fd9367667.js" crossorigin="anonymous"></script>

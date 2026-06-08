@@ -48,33 +48,33 @@
   }
 
   function companyCardHtml(co) {
-    return '<article class="nx-co" data-org="' + co.id + '" data-name="' + esc(co.name) + '" data-plan="' + planLabel(co.plan) + '">' +
+    return '<article class="nx-co" data-org="' + esc(co.id) + '" data-name="' + esc(co.name) + '" data-plan="' + esc(planLabel(co.plan)) + '">' +
       '<header class="nx-co-head">' +
         '<button type="button" class="nx-co-toggle" data-toggle title="Show members"><i class="fa-solid fa-chevron-right"></i></button>' +
         '<span class="nx-co-name">' + esc(co.name) + '</span>' + planPill(co.plan) +
-        '<span class="nx-co-count"><i class="fa-solid fa-users"></i> <span data-count="' + co.id + '">' + (co.member_count || 0) + '</span></span>' +
+        '<span class="nx-co-count"><i class="fa-solid fa-users"></i> <span data-count="' + esc(co.id) + '">' + esc(co.member_count || 0) + '</span></span>' +
         '<button type="button" class="nx-icon-btn nx-co-editbtn" data-edit-company title="Edit company"><i class="fa-solid fa-pen"></i></button>' +
-      '</header><div class="nx-co-body" data-body="' + co.id + '" hidden></div></article>';
+      '</header><div class="nx-co-body" data-body="' + esc(co.id) + '" hidden></div></article>';
   }
 
   function roleSelect(orgId, userId, current) {
     var o = ROLES.map(function (r) {
       return '<option value="' + r + '"' + (r === current ? ' selected' : '') + '>' + cap(r) + '</option>';
     }).join('');
-    return '<select class="nx-mini" data-set-role data-org="' + orgId + '" data-user="' + userId + '">' + o + '</select>';
+    return '<select class="nx-mini" data-set-role data-org="' + esc(orgId) + '" data-user="' + esc(userId) + '">' + o + '</select>';
   }
 
   function memberRowHtml(orgId, m) {
     var platform = m.global_role === 'admin'
       ? '<span class="badge badge--role-admin">Global admin</span>' : '<span class="nx-muted">user</span>';
-    var editBtn = GLOBAL ? '<button type="button" class="nx-icon-btn" data-edit-user data-user="' + m.id +
+    var editBtn = GLOBAL ? '<button type="button" class="nx-icon-btn" data-edit-user data-user="' + esc(m.id) +
       '" data-name="' + esc(m.full_name || '') + '" data-email="' + esc(m.email) + '" data-global="' + esc(m.global_role) +
       '" title="Edit user"><i class="fa-solid fa-pen"></i></button>' : '';
-    return '<tr data-user="' + m.id + '">' +
+    return '<tr data-user="' + esc(m.id) + '">' +
       '<td>' + esc(m.full_name || '—') + '</td><td>' + esc(m.email) + '</td><td>' + platform + '</td>' +
       '<td>' + roleSelect(orgId, m.id, m.member_role) + '</td>' +
       '<td class="nx-row-action">' + editBtn +
-        '<button type="button" class="nx-icon-btn" data-remove-member data-org="' + orgId + '" data-user="' + m.id + '" title="Remove from company"><i class="fa-solid fa-user-minus"></i></button>' +
+        '<button type="button" class="nx-icon-btn" data-remove-member data-org="' + esc(orgId) + '" data-user="' + esc(m.id) + '" title="Remove from company"><i class="fa-solid fa-user-minus"></i></button>' +
       '</td></tr>';
   }
 
@@ -82,13 +82,13 @@
     var rows = (data.members || []).map(function (m) { return memberRowHtml(orgId, m); }).join('') ||
       '<tr data-empty><td colspan="5" class="nx-muted">No members</td></tr>';
     var cap = data.max_members
-      ? '<p class="nx-cap"><i class="fa-solid fa-circle-info"></i> ' + data.plan + ' plan — up to ' + data.max_members + ' members.</p>'
+      ? '<p class="nx-cap"><i class="fa-solid fa-circle-info"></i> ' + esc(data.plan) + ' plan — up to ' + esc(data.max_members) + ' members.</p>'
       : '';
-    var opts = ROLES.map(function (r) { return '<option value="' + r + '"' + (r === 'viewer' ? ' selected' : '') + '>' + cap0(r) + '</option>'; }).join('');
+    var opts = ROLES.map(function (r) { return '<option value="' + esc(r) + '"' + (r === 'viewer' ? ' selected' : '') + '>' + esc(cap0(r)) + '</option>'; }).join('');
     return '<div class="nx-table-wrap"><table class="nx-table"><thead><tr><th>Name</th><th>Email</th><th>Platform</th><th>Role</th><th></th></tr></thead>' +
-      '<tbody data-members="' + orgId + '">' + rows + '</tbody></table></div>' + cap +
+      '<tbody data-members="' + esc(orgId) + '">' + rows + '</tbody></table></div>' + cap +
       '<form class="nx-form nx-form--inline nx-ajax" data-ajax="add-member" method="POST" action="/admin/add-member">' +
-        '<input type="hidden" name="csrf_token" value="' + esc(CSRF) + '"><input type="hidden" name="organization_id" value="' + orgId + '">' +
+        '<input type="hidden" name="csrf_token" value="' + esc(CSRF) + '"><input type="hidden" name="organization_id" value="' + esc(orgId) + '">' +
         '<input name="email" type="email" placeholder="existing user email" required>' +
         '<select name="member_role">' + opts + '</select>' +
         '<button type="submit"><i class="fa-solid fa-user-plus"></i> Add member</button></form>';
@@ -283,7 +283,7 @@
       var q = ta.value.trim();
       api('/admin/search-companies?q=' + encodeURIComponent(q)).then(function (d) {
         if (!d.ok) return;
-        list.innerHTML = d.items.map(function (c) { return '<li data-id="' + c.id + '">' + esc(c.name) + ' ' + planPill(c.plan) + '</li>'; }).join('');
+        list.innerHTML = d.items.map(function (c) { return '<li data-id="' + esc(c.id) + '">' + esc(c.name) + ' ' + planPill(c.plan) + '</li>'; }).join('');
         list.hidden = d.items.length === 0;
       });
     }, 250));

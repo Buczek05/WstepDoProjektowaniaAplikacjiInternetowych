@@ -55,7 +55,8 @@ class AppController {
 
     protected function redirect(string $path): void
     {
-        $url = "http://{$_SERVER['HTTP_HOST']}";
+        $scheme = !empty($_SERVER['HTTPS']) ? 'https' : 'http';
+        $url    = "{$scheme}://{$_SERVER['HTTP_HOST']}";
         header("Location: {$url}{$path}");
         exit();
     }

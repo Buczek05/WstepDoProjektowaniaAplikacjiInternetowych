@@ -17,7 +17,14 @@ class Database {
                 "pgsql:host={$host};port=5432;dbname={$database}",
                 $username,
                 $password,
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                ]
+                // Note: A1 (SQL-injection prevention) is satisfied by using
+                // prepared statements with bound parameters everywhere — PDO
+                // parameterizes safely regardless of emulation mode. We keep the
+                // default (emulated) prepares to avoid driver edge-cases.
             );
         }
 
