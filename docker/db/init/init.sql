@@ -1519,3 +1519,24 @@ END $$;
 -- =============================================================================
 UPDATE organizations
 SET plan = CASE WHEN lower(plan) LIKE '%pro%' OR lower(plan) LIKE '%premium%' THEN 'Pro' ELSE 'Free' END;
+
+
+-- =============================================================================
+-- Personal test logins (kacperbuko@wp.pl family) — password: Buczek2005!
+-- One account per access type. DEV ONLY (plaintext-known credentials).
+-- =============================================================================
+INSERT INTO users (organization_id, username, email, password, full_name, role) VALUES
+ (1, 'kacperbuko',               'kacperbuko@wp.pl',             '$2y$10$mUFo03vDZcI8N5zN19LwEeYiXxNXYO33hpeJ5xTBO4MxzFgoCmYmi', 'Kacper Bukowski',        'admin'),
+ (1, 'kacperbuko_admin',         'kacperbuko+admin@wp.pl',       '$2y$10$mUFo03vDZcI8N5zN19LwEeYiXxNXYO33hpeJ5xTBO4MxzFgoCmYmi', 'Kacper (Global Admin)',  'admin'),
+ (2, 'kacperbuko_companyadmin',  'kacperbuko+companyadmin@wp.pl','$2y$10$mUFo03vDZcI8N5zN19LwEeYiXxNXYO33hpeJ5xTBO4MxzFgoCmYmi', 'Kacper (Company Admin)', 'viewer'),
+ (1, 'kacperbuko_manager',       'kacperbuko+manager@wp.pl',     '$2y$10$mUFo03vDZcI8N5zN19LwEeYiXxNXYO33hpeJ5xTBO4MxzFgoCmYmi', 'Kacper (Manager)',       'manager'),
+ (1, 'kacperbuko_analyst',       'kacperbuko+analyst@wp.pl',     '$2y$10$mUFo03vDZcI8N5zN19LwEeYiXxNXYO33hpeJ5xTBO4MxzFgoCmYmi', 'Kacper (Analyst)',       'analyst'),
+ (1, 'kacperbuko_viewer',        'kacperbuko+viewer@wp.pl',      '$2y$10$mUFo03vDZcI8N5zN19LwEeYiXxNXYO33hpeJ5xTBO4MxzFgoCmYmi', 'Kacper (Viewer)',        'viewer');
+
+INSERT INTO organization_members (organization_id, user_id, role)
+SELECT o.id, u.id, 'admin' FROM organizations o CROSS JOIN users u WHERE u.email = 'kacperbuko@wp.pl';
+INSERT INTO organization_members (organization_id, user_id, role) SELECT 1, id, 'admin'   FROM users WHERE email='kacperbuko+admin@wp.pl';
+INSERT INTO organization_members (organization_id, user_id, role) SELECT 2, id, 'admin'   FROM users WHERE email='kacperbuko+companyadmin@wp.pl';
+INSERT INTO organization_members (organization_id, user_id, role) SELECT 1, id, 'manager' FROM users WHERE email='kacperbuko+manager@wp.pl';
+INSERT INTO organization_members (organization_id, user_id, role) SELECT 1, id, 'analyst' FROM users WHERE email='kacperbuko+analyst@wp.pl';
+INSERT INTO organization_members (organization_id, user_id, role) SELECT 1, id, 'viewer'  FROM users WHERE email='kacperbuko+viewer@wp.pl';
